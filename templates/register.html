@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}ثبت‌نام — سپر کد{% endblock %}
+{% block body %}
+<div class="auth-wrapper">
+  <div class="particles" id="particles"></div>
+  <div class="auth-card fade-in">
+    <div class="auth-logo">
+      <div class="shield-icon">🛡️</div>
+      <h1 class="auth-title">ثبت‌نام در سپر کد</h1>
+      <p class="auth-subtitle">ایجاد حساب کاربری جدید</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="/register" class="auth-form">
+      <div class="form-group">
+        <label class="form-label">نام کاربری</label>
+        <input type="text" name="username" class="form-input" placeholder="یک نام کاربری انتخاب کنید" required minlength="3"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">ایمیل</label>
+        <input type="email" name="email" class="form-input" placeholder="آدرس ایمیل خود را وارد کنید" required/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">رمز عبور</label>
+        <input type="password" name="password" class="form-input" placeholder="حداقل ۸ کاراکتر" required minlength="8"/>
+      </div>
+      <button type="submit" class="btn btn-primary w-full">
+        ✅ ایجاد حساب کاربری
+      </button>
+    </form>
+
+    <p class="auth-footer">
+      حساب کاربری دارید؟
+      <a href="/login" class="auth-link">وارد شوید</a>
+    </p>
+  </div>
+</div>
+<script>
+const canvas = document.createElement('canvas');
+canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.3';
+document.getElementById('particles').appendChild(canvas);
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+const particles = Array.from({length: 60}, () => ({x: Math.random()*canvas.width,y: Math.random()*canvas.height,r: Math.random()*2+0.5,vx: (Math.random()-0.5)*0.5,vy: (Math.random()-0.5)*0.5,color: Math.random()>0.5?'#00ff88':'#ff4444'}));
+function animateParticles(){ctx.clearRect(0,0,canvas.width,canvas.height);particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>canvas.width)p.vx*=-1;if(p.y<0||p.y>canvas.height)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();});requestAnimationFrame(animateParticles);}
+animateParticles();
+</script>
+{% endblock %}

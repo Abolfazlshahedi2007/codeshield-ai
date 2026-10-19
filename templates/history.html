@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}تاریخچه اسکن‌ها — سپر کد{% endblock %}
+{% block body %}
+<nav class="navbar">
+  <div class="navbar-brand">
+    <span class="navbar-logo">🛡️</span>
+    <span class="navbar-title">سپر کد</span>
+  </div>
+  <div class="navbar-actions">
+    <button class="btn-icon" onclick="toggleTheme()">🌙</button>
+    <a href="/dashboard" class="btn btn-sm btn-primary">↩ بازگشت به داشبورد</a>
+    <a href="/logout" class="btn btn-sm btn-outline">خروج</a>
+  </div>
+</nav>
+
+<div class="history-wrapper">
+  <div class="history-header">
+    <h1 class="history-title">📋 تاریخچه اسکن‌ها</h1>
+    <p class="history-subtitle">{{ current_user.username }} — {{ scans|length }} اسکن انجام شده</p>
+  </div>
+
+  {% if scans %}
+  <div class="history-table-wrapper">
+    <table class="history-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>زبان</th>
+          <th>امتیاز</th>
+          <th>آسیب‌پذیری‌ها</th>
+          <th>قطعه کد</th>
+          <th>زمان</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for scan in scans %}
+        <tr class="history-row">
+          <td>{{ loop.index }}</td>
+          <td>
+            <span class="lang-badge lang-{{ scan.language }}">
+              {{ {'python':'🐍 Python','php':'🐘 PHP','javascript':'⚡ JS'}.get(scan.language, scan.language) }}
+            </span>
+          </td>
+          <td>
+            <span class="score-pill {% if scan.score >= 80 %}score-green{% elif scan.score >= 50 %}score-yellow{% else %}score-red{% endif %}">
+              {{ scan.score }}
+            </span>
+          </td>
+          <td>
+            <span class="issue-count-badge">{{ scan.issues_count }}</span>
+          </td>
+          <td>
+            <code class="code-snippet-preview ltr-text">{{ scan.code_snippet[:80] }}{% if scan.code_snippet|length > 80 %}...{% endif %}</code>
+          </td>
+          <td class="timestamp">{{ scan.timestamp.strftime('%Y/%m/%d %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state" style="margin-top:4rem">
+    <div class="empty-icon">📂</div>
+    <h3>هنوز اسکنی انجام نشده</h3>
+    <p>به داشبورد بروید و اولین اسکن امنیتی خود را انجام دهید!</p>
+    <a href="/dashboard" class="btn btn-primary" style="margin-top:1rem">🔍 شروع اسکن</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

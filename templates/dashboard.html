@@ -1,0 +1,475 @@
+{% extends "base.html" %}
+{% block title %}داشبورد — سپر کد{% endblock %}
+
+{% block extra_head %}
+<!-- CodeMirror -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/eclipse.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/php/php.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- Marked.js for Markdown -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+{% endblock %}
+
+{% block body %}
+<!-- Navbar -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    <span class="navbar-logo">🛡️</span>
+    <span class="navbar-title">سپر کد</span>
+    <span class="navbar-subtitle">CodeShield AI</span>
+  </div>
+  <div class="navbar-actions">
+    <button class="btn-icon" onclick="toggleTheme()" title="تغییر تم">🌙</button>
+    <button class="btn-icon" onclick="openSettings()" title="تنظیمات API">⚙️</button>
+    <a href="/history" class="btn-icon" title="تاریخچه اسکن‌ها">📋</a>
+    <span class="navbar-user">👤 {{ current_user.username }}</span>
+    <a href="/logout" class="btn btn-sm btn-outline">خروج</a>
+  </div>
+</nav>
+
+<!-- Flash messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-container">
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- Main workspace -->
+<main class="workspace">
+  <!-- RIGHT PANEL: Code Editor -->
+  <section class="panel panel-right">
+    <div class="panel-header">
+      <h2 class="panel-title">📝 ویرایشگر کد</h2>
+      <div class="panel-controls">
+        <!-- Language selector -->
+        <select id="languageSelect" class="select-control" onchange="changeLanguage(this.value)">
+          <option value="python">🐍 Python</option>
+          <option value="php">🐘 PHP</option>
+          <option value="javascript">⚡ JavaScript</option>
+        </select>
+        <!-- Demo samples dropdown -->
+        <div class="dropdown">
+          <button class="btn btn-sm btn-secondary dropdown-toggle" onclick="toggleDropdown()">
+            📂 نمونه‌های آماده ▾
+          </button>
+          <div class="dropdown-menu" id="samplesDropdown">
+            {% for key, sample in demo_samples.items() %}
+            <button class="dropdown-item" onclick="loadSample('{{ key }}')">
+              {{ sample.label }}
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CodeMirror Editor -->
+    <div class="editor-wrapper">
+      <textarea id="codeEditor" placeholder="کد خود را اینجا وارد کنید..."></textarea>
+    </div>
+
+    <!-- Scan button -->
+    <div class="panel-footer">
+      <button class="btn btn-scan" onclick="runScan()" id="scanBtn">
+        <span class="btn-icon-inner">🔍</span>
+        اسکن سریع امنیت (آفلاین)
+      </button>
+      <div class="scan-info">⚡ بدون نیاز به اینترنت — تحلیل فوری</div>
+    </div>
+  </section>
+
+  <!-- LEFT PANEL: Results -->
+  <section class="panel panel-left">
+    <!-- Default empty state -->
+    <div id="emptyState" class="empty-state">
+      <div class="empty-icon">🛡️</div>
+      <h3>آماده برای اسکن</h3>
+      <p>کد خود را در ویرایشگر وارد کنید و دکمه «اسکن سریع امنیت» را بزنید.</p>
+      <p class="empty-tip">💡 برای نمایش سریع می‌توانید از نمونه‌های آماده استفاده کنید.</p>
+    </div>
+
+    <!-- Results area (hidden initially) -->
+    <div id="resultsArea" class="results-area hidden">
+      <!-- Score gauge -->
+      <div class="score-section">
+        <div class="score-gauge-wrapper">
+          <canvas id="scoreGauge" width="200" height="200"></canvas>
+          <div class="score-center">
+            <span id="scoreValue" class="score-number">0</span>
+            <span class="score-label">امتیاز امنیتی</span>
+          </div>
+        </div>
+        <div class="score-meta">
+          <div id="scoreBadge" class="score-badge">—</div>
+          <div id="issuesCount" class="issues-count">۰ آسیب‌پذیری</div>
+        </div>
+      </div>
+
+      <!-- Issues list -->
+      <div class="issues-section">
+        <h3 class="section-title">⚠️ آسیب‌پذیری‌های شناسایی شده</h3>
+        <div id="issuesList" class="issues-list"></div>
+      </div>
+
+      <!-- AI Fix section -->
+      <div class="ai-section">
+        <button class="btn btn-ai" onclick="runAiFix()" id="aiFixBtn">
+          ✨ اصلاح هوشمند با هوش مصنوعی
+        </button>
+        <div id="aiFixer" class="ai-output hidden">
+          <div class="ai-output-header">
+            <h3>✅ کد اصلاح‌شده</h3>
+            <button class="btn btn-sm btn-outline" onclick="copyFixedCode()">📋 کپی کد</button>
+          </div>
+          <div class="editor-wrapper fixed-code-wrapper">
+            <textarea id="fixedCodeEditor"></textarea>
+          </div>
+          <div class="explanation-box">
+            <h4>📖 توضیح اصلاحات</h4>
+            <div id="explanationContent" class="explanation-content"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading spinner -->
+    <div id="loadingState" class="loading-state hidden">
+      <div class="spinner"></div>
+      <p id="loadingText">در حال اسکن کد...</p>
+    </div>
+  </section>
+</main>
+
+<!-- Settings Modal -->
+<div id="settingsModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>⚙️ تنظیمات API</h3>
+      <button class="modal-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-desc">برای استفاده از قابلیت اصلاح هوشمند، کلید Gemini API خود را وارد کنید:</p>
+      <div class="form-group">
+        <label class="form-label">Gemini API Key</label>
+        <input type="password" id="apiKeyInput" class="form-input" placeholder="AIzaSy..."/>
+      </div>
+      <p class="modal-tip">💡 بدون کلید API، از حالت آفلاین با نمونه‌های آماده استفاده می‌شود.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveSettings()">💾 ذخیره</button>
+      <button class="btn btn-outline" onclick="closeSettings()">لغو</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// ──────────────────────────────────────────────
+// CodeMirror setup
+// ──────────────────────────────────────────────
+const editor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
+  mode: 'python',
+  theme: document.body.classList.contains('dark-mode') ? 'dracula' : 'eclipse',
+  lineNumbers: true,
+  matchBrackets: true,
+  styleActiveLine: true,
+  indentUnit: 4,
+  tabSize: 4,
+  indentWithTabs: false,
+  lineWrapping: true,
+  direction: 'ltr',
+  extraKeys: {"Tab": "indentMore", "Shift-Tab": "indentLess"}
+});
+editor.setSize(null, '380px');
+
+// Fixed code editor
+let fixedEditor = null;
+
+// ──────────────────────────────────────────────
+// State
+// ──────────────────────────────────────────────
+let currentScanResult = null;
+let samplesData = {};
+let geminiApiKey = localStorage.getItem('gemini_api_key') || '';
+
+// ──────────────────────────────────────────────
+// Language change
+// ──────────────────────────────────────────────
+function changeLanguage(lang) {
+  const modeMap = { python: 'python', php: 'php', javascript: 'javascript' };
+  editor.setOption('mode', modeMap[lang] || 'python');
+}
+
+// ──────────────────────────────────────────────
+// Load demo samples
+// ──────────────────────────────────────────────
+async function loadSamples() {
+  try {
+    const resp = await fetch('/api/samples');
+    samplesData = await resp.json();
+  } catch(e) { console.error('Failed to load samples', e); }
+}
+
+function loadSample(key) {
+  const sample = samplesData[key];
+  if (!sample) return;
+  editor.setValue(sample.code);
+  document.getElementById('languageSelect').value = sample.language;
+  changeLanguage(sample.language);
+  closeDropdown();
+  resetResults();
+}
+
+function toggleDropdown() {
+  document.getElementById('samplesDropdown').classList.toggle('show');
+}
+function closeDropdown() {
+  document.getElementById('samplesDropdown').classList.remove('show');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.dropdown')) closeDropdown();
+});
+
+// ──────────────────────────────────────────────
+// Run scan
+// ──────────────────────────────────────────────
+async function runScan() {
+  const code = editor.getValue().trim();
+  if (!code) { showToast('لطفاً کدی وارد کنید', 'warning'); return; }
+  const language = document.getElementById('languageSelect').value;
+
+  setLoading(true, 'در حال اسکن کد...');
+  resetResults();
+
+  try {
+    const resp = await fetch('/api/scan', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ code, language })
+    });
+    const data = await resp.json();
+    setLoading(false);
+    currentScanResult = data;
+    displayResults(data);
+  } catch(e) {
+    setLoading(false);
+    showToast('خطا در ارتباط با سرور', 'danger');
+  }
+}
+
+// ──────────────────────────────────────────────
+// Display results
+// ──────────────────────────────────────────────
+function displayResults(data) {
+  document.getElementById('emptyState').classList.add('hidden');
+  document.getElementById('resultsArea').classList.remove('hidden');
+
+  // Score
+  const score = data.score;
+  document.getElementById('scoreValue').textContent = score;
+  drawGauge(score);
+
+  // Score badge
+  const badge = document.getElementById('scoreBadge');
+  if (score >= 80) {
+    badge.textContent = '✅ امن';
+    badge.className = 'score-badge badge-green';
+  } else if (score >= 50) {
+    badge.textContent = '⚠️ متوسط';
+    badge.className = 'score-badge badge-yellow';
+  } else {
+    badge.textContent = '🚨 خطرناک';
+    badge.className = 'score-badge badge-red';
+  }
+
+  // Issues count
+  const cnt = data.issues_count;
+  document.getElementById('issuesCount').textContent =
+    cnt === 0 ? 'هیچ آسیب‌پذیری‌ای یافت نشد 🎉' : `${cnt} آسیب‌پذیری شناسایی شد`;
+
+  // Issues list
+  const list = document.getElementById('issuesList');
+  if (data.issues.length === 0) {
+    list.innerHTML = '<div class="no-issues">✅ کد شما از نظر قوانین محلی امن است!</div>';
+  } else {
+    list.innerHTML = data.issues.map(issue => `
+      <div class="issue-card severity-${issue.severity}">
+        <div class="issue-header">
+          <span class="severity-badge severity-badge-${issue.severity}">${severityLabel(issue.severity)}</span>
+          <span class="issue-title">${issue.title}</span>
+          <span class="issue-deduction">-${issue.deduction} امتیاز</span>
+        </div>
+        <p class="issue-desc">${issue.description}</p>
+        <div class="issue-lines">
+          📍 خطوط: ${issue.lines.map(l => `<span class="line-badge">${l}</span>`).join(' ')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Show AI fix button only if there are issues
+  document.getElementById('aiFixBtn').style.display = data.issues.length > 0 ? 'flex' : 'none';
+}
+
+function severityLabel(s) {
+  return {critical:'🔴 بحرانی', high:'🟠 بالا', medium:'🟡 متوسط', low:'🔵 پایین'}[s] || s;
+}
+
+// ──────────────────────────────────────────────
+// Gauge chart
+// ──────────────────────────────────────────────
+let gaugeChart = null;
+function drawGauge(score) {
+  const ctx = document.getElementById('scoreGauge').getContext('2d');
+  if (gaugeChart) gaugeChart.destroy();
+
+  const color = score >= 80 ? '#00ff88' : score >= 50 ? '#ffbb00' : '#ff4444';
+  gaugeChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [score, 100 - score],
+        backgroundColor: [color, 'rgba(255,255,255,0.06)'],
+        borderWidth: 0,
+        circumference: 270,
+        rotation: 225,
+      }]
+    },
+    options: {
+      cutout: '78%',
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      animation: { animateRotate: true, duration: 800 }
+    }
+  });
+}
+
+// ──────────────────────────────────────────────
+// AI Fix
+// ──────────────────────────────────────────────
+async function runAiFix() {
+  if (!currentScanResult) return;
+  const code = editor.getValue().trim();
+  const language = document.getElementById('languageSelect').value;
+
+  setLoading(true, 'در حال اصلاح هوشمند با هوش مصنوعی...');
+
+  try {
+    const resp = await fetch('/api/ai-fix', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        code,
+        language,
+        issues: currentScanResult.issues,
+        api_key: geminiApiKey
+      })
+    });
+    const data = await resp.json();
+    setLoading(false);
+    displayAiFix(data);
+    if (data.message) showToast(data.message, 'warning');
+  } catch(e) {
+    setLoading(false);
+    showToast('خطا در اتصال به سرویس هوش مصنوعی', 'danger');
+  }
+}
+
+function displayAiFix(data) {
+  const fixSection = document.getElementById('aiFixer');
+  fixSection.classList.remove('hidden');
+
+  // Fixed code editor
+  const fixedTextarea = document.getElementById('fixedCodeEditor');
+  fixedTextarea.value = data.fixed_code || '';
+  if (fixedEditor) fixedEditor.toTextArea();
+  fixedEditor = CodeMirror.fromTextArea(fixedTextarea, {
+    mode: document.getElementById('languageSelect').value,
+    theme: document.body.classList.contains('dark-mode') ? 'dracula' : 'eclipse',
+    lineNumbers: true,
+    readOnly: true,
+    direction: 'ltr',
+  });
+  fixedEditor.setSize(null, '320px');
+
+  // Explanation
+  const explanation = data.explanation || '';
+  document.getElementById('explanationContent').innerHTML =
+    typeof marked !== 'undefined' ? marked.parse(explanation) : explanation.replace(/\n/g, '<br>');
+
+  fixSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function copyFixedCode() {
+  const code = fixedEditor ? fixedEditor.getValue() : document.getElementById('fixedCodeEditor').value;
+  navigator.clipboard.writeText(code).then(() => showToast('کد کپی شد! ✅', 'success'));
+}
+
+// ──────────────────────────────────────────────
+// Settings modal
+// ──────────────────────────────────────────────
+function openSettings() {
+  document.getElementById('apiKeyInput').value = geminiApiKey;
+  document.getElementById('settingsModal').classList.remove('hidden');
+}
+function closeSettings() {
+  document.getElementById('settingsModal').classList.add('hidden');
+}
+function saveSettings() {
+  geminiApiKey = document.getElementById('apiKeyInput').value.trim();
+  localStorage.setItem('gemini_api_key', geminiApiKey);
+  closeSettings();
+  showToast('تنظیمات ذخیره شد ✅', 'success');
+}
+document.getElementById('settingsModal').addEventListener('click', function(e) {
+  if (e.target === this) closeSettings();
+});
+
+// ──────────────────────────────────────────────
+// Helpers
+// ──────────────────────────────────────────────
+function setLoading(show, text = '') {
+  document.getElementById('loadingState').classList.toggle('hidden', !show);
+  document.getElementById('resultsArea').classList.toggle('hidden', show);
+  document.getElementById('emptyState').classList.toggle('hidden', show || currentScanResult);
+  if (text) document.getElementById('loadingText').textContent = text;
+}
+
+function resetResults() {
+  document.getElementById('aiFixer').classList.add('hidden');
+  if (fixedEditor) { fixedEditor.toTextArea(); fixedEditor = null; }
+}
+
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3500);
+}
+
+// Update editor theme on theme toggle
+window.addEventListener('themeChanged', (e) => {
+  const theme = e.detail.dark ? 'dracula' : 'eclipse';
+  editor.setOption('theme', theme);
+  if (fixedEditor) fixedEditor.setOption('theme', theme);
+});
+
+// Init
+loadSamples();
+</script>
+{% endblock %}
