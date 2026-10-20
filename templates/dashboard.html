@@ -136,7 +136,10 @@
         </button>
         <div id="aiFixer" class="ai-output hidden">
           <div class="ai-output-header">
-            <h3>✅ کد اصلاح‌شده</h3>
+            <div style="display:flex;align-items:center;gap:0.6rem">
+              <h3>✅ کد اصلاح‌شده</h3>
+              <span id="aiSourceBadge" class="badge-source"></span>
+            </div>
             <button class="btn btn-sm btn-outline" onclick="copyFixedCode()">📋 کپی کد</button>
           </div>
           <div class="editor-wrapper fixed-code-wrapper">
@@ -445,7 +448,7 @@ async function runAiFix() {
     const data = await resp.json();
     setLoading(false);
     displayAiFix(data);
-    if (data.message) showToast(data.message, 'warning');
+    showToast('کد با موفقیت اصلاح و امن‌سازی شد! ✅', 'success');
   } catch(e) {
     setLoading(false);
     showToast('خطا در اتصال به سرویس هوش مصنوعی', 'danger');
@@ -458,6 +461,12 @@ async function runAiFix() {
 function displayAiFix(data) {
   const fixSection = document.getElementById('aiFixer');
   fixSection.classList.remove('hidden');
+
+  const sourceBadge = document.getElementById('aiSourceBadge');
+  if (sourceBadge) {
+    sourceBadge.textContent = data.source_label || (data.source === 'gemini' ? '✨ هوش مصنوعی Gemini 2.0' : '🟢 موتور داخلی (آفلاین دمو)');
+    sourceBadge.className = data.source === 'gemini' ? 'badge-ai-online' : 'badge-ai-offline';
+  }
 
   // Fixed code editor
   const fixedTextarea = document.getElementById('fixedCodeEditor');

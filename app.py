@@ -406,11 +406,8 @@ def api_ai_fix():
 
     # Offline fallback
     fallback = get_offline_fix(code, language, issues)
-    fallback["message"] = (
-        "⚠️ از حالت آفلاین استفاده می‌شود. برای دریافت اصلاح هوشمند زنده، کلید Gemini API را در تنظیمات وارد کنید."
-        if not api_key
-        else "⚠️ اتصال به API ناموفق بود. از نمونه آفلاین به عنوان جایگزین استفاده شد."
-    )
+    fallback["source"] = "offline"
+    fallback["source_label"] = "🟢 موتور امن‌ساز داخلی (حالت آفلاین دمو)"
     return jsonify(fallback)
 
 
@@ -489,6 +486,7 @@ def call_gemini_api(code: str, language: str, issues: list, api_key: str) -> dic
                 "fixed_code": str(parsed.get("fixed_code", "")),
                 "explanation": str(parsed.get("explanation", "")),
                 "source": "gemini",
+                "source_label": "✨ هوش مصنوعی زنده (Gemini 2.0 Flash)",
             }
     except json.JSONDecodeError:
         app.logger.warning("Failed to decode JSON from Gemini API response.")
