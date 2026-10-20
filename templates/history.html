@@ -50,9 +50,13 @@
             <span class="issue-count-badge">{{ scan.issues_count }}</span>
           </td>
           <td>
-            <code class="code-snippet-preview ltr-text">{{ scan.code_snippet[:80] }}{% if scan.code_snippet|length > 80 %}...{% endif %}</code>
+            <code class="code-snippet-preview ltr-text" title="{{ scan.code_snippet }}">
+              {{ scan.code_snippet.strip()[:80] }}{% if scan.code_snippet.strip()|length > 80 %}...{% endif %}
+            </code>
           </td>
-          <td class="timestamp">{{ scan.timestamp.strftime('%Y/%m/%d %H:%M') }}</td>
+          <td class="timestamp" data-utc="{{ scan.timestamp.isoformat() if scan.timestamp else '' }}">
+            {{ scan.timestamp.strftime('%Y/%m/%d %H:%M') if scan.timestamp else '—' }}
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -67,4 +71,18 @@
   </div>
   {% endif %}
 </div>
+
+<script>
+document.querySelectorAll('.timestamp[data-utc]').forEach(el => {
+  const utc = el.getAttribute('data-utc');
+  if (!utc) return;
+  try {
+    const d = new Date(utc);
+    el.textContent = new Intl.DateTimeFormat('fa-IR', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    }).format(d);
+  } catch(e) {}
+});
+</script>
 {% endblock %}

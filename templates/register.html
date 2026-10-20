@@ -20,16 +20,22 @@
 
     <form method="POST" action="/register" class="auth-form">
       <div class="form-group">
-        <label class="form-label">نام کاربری</label>
-        <input type="text" name="username" class="form-input" placeholder="یک نام کاربری انتخاب کنید" required minlength="3"/>
+        <label class="form-label" for="reg-username">نام کاربری</label>
+        <input type="text" id="reg-username" name="username" class="form-input" 
+               dir="ltr" placeholder="یک نام کاربری انتخاب کنید" 
+               autocomplete="username" autocapitalize="none" spellcheck="false" minlength="3" maxlength="30" required autofocus/>
       </div>
       <div class="form-group">
-        <label class="form-label">ایمیل</label>
-        <input type="email" name="email" class="form-input" placeholder="آدرس ایمیل خود را وارد کنید" required/>
+        <label class="form-label" for="reg-email">ایمیل</label>
+        <input type="email" id="reg-email" name="email" class="form-input" 
+               dir="ltr" placeholder="name@example.com" 
+               autocomplete="email" required/>
       </div>
       <div class="form-group">
-        <label class="form-label">رمز عبور</label>
-        <input type="password" name="password" class="form-input" placeholder="حداقل ۸ کاراکتر" required minlength="8"/>
+        <label class="form-label" for="reg-password">رمز عبور</label>
+        <input type="password" id="reg-password" name="password" class="form-input" 
+               dir="ltr" placeholder="حداقل ۸ کاراکتر" 
+               autocomplete="new-password" minlength="8" required/>
       </div>
       <button type="submit" class="btn btn-primary w-full">
         ✅ ایجاد حساب کاربری
@@ -50,6 +56,10 @@ const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 const particles = Array.from({length: 60}, () => ({x: Math.random()*canvas.width,y: Math.random()*canvas.height,r: Math.random()*2+0.5,vx: (Math.random()-0.5)*0.5,vy: (Math.random()-0.5)*0.5,color: Math.random()>0.5?'#00ff88':'#ff4444'}));
 function animateParticles(){ctx.clearRect(0,0,canvas.width,canvas.height);particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0||p.x>canvas.width)p.vx*=-1;if(p.y<0||p.y>canvas.height)p.vy*=-1;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.color;ctx.fill();});requestAnimationFrame(animateParticles);}
-animateParticles();
+const mediaReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+if (!mediaReducedMotion.matches) {
+  animateParticles();
+}
+window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
 </script>
 {% endblock %}

@@ -159,11 +159,11 @@
 </main>
 
 <!-- Settings Modal -->
-<div id="settingsModal" class="modal-overlay hidden">
+<div id="settingsModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
   <div class="modal">
     <div class="modal-header">
-      <h3>⚙️ تنظیمات API</h3>
-      <button class="modal-close" onclick="closeSettings()">✕</button>
+      <h3 id="settingsTitle">⚙️ تنظیمات API</h3>
+      <button class="modal-close" onclick="closeSettings()" aria-label="بستن پنجره" type="button">✕</button>
     </div>
     <div class="modal-body">
       <p class="modal-desc">برای استفاده از قابلیت اصلاح هوشمند، کلید Gemini API خود را وارد کنید:</p>
@@ -198,9 +198,19 @@ const editor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
   indentWithTabs: false,
   lineWrapping: true,
   direction: 'ltr',
-  extraKeys: {"Tab": "indentMore", "Shift-Tab": "indentLess"}
+  extraKeys: {
+    "Tab": "indentMore",
+    "Shift-Tab": "indentLess",
+    "Ctrl-Enter": () => runScan(),
+    "Cmd-Enter": () => runScan()
+  }
 });
-editor.setSize(null, '380px');
+editor.setSize('100%', '100%');
+
+window.addEventListener('resize', () => {
+  editor.refresh();
+  if (fixedEditor) fixedEditor.refresh();
+});
 
 // Fixed code editor
 let fixedEditor = null;
@@ -234,18 +244,31 @@ async function loadSamples() {
 function loadSample(key) {
   const sample = samplesData[key];
   if (!sample) return;
+
   editor.setValue(sample.code);
+  editor.clearHistory();
+  editor.scrollTo(0, 0);
+  editor.refresh();
+
   document.getElementById('languageSelect').value = sample.language;
   changeLanguage(sample.language);
   closeDropdown();
+
+  // Reset state completely to prevent cross-contamination
+  currentScanResult = null;
   resetResults();
+  document.getElementById('resultsArea').classList.add('hidden');
+  document.getElementById('emptyState').classList.remove('hidden');
+  document.getElementById('aiFixBtn').style.display = 'none';
 }
 
 function toggleDropdown() {
-  document.getElementById('samplesDropdown').classList.toggle('show');
+  const dd = document.getElementById('samplesDropdown');
+  dd.classList.toggle('show');
 }
 function closeDropdown() {
-  document.getElementById('samplesDropdown').classList.remove('show');
+  const dd = document.getElementById('samplesDropdown');
+  if (dd) dd.classList.remove('show');
 }
 document.addEventListener('click', e => {
   if (!e.target.closest('.dropdown')) closeDropdown();
@@ -268,7 +291,6 @@ async function runScan() {
   if (!code) { showToast('لطفاً کدی وارد کنید', 'warning'); return; }
   const language = document.getElementById('languageSelect').value;
 
-  // Disable button to prevent double-click
   const scanBtn = document.getElementById('scanBtn');
   scanBtn.disabled = true;
   scanBtn.style.opacity = '0.6';
@@ -362,16 +384,25 @@ function severityLabel(s) {
 // ──────────────────────────────────────────────
 let gaugeChart = null;
 function drawGauge(score) {
-  const ctx = document.getElementById('scoreGauge').getContext('2d');
-  if (gaugeChart) gaugeChart.destroy();
+  const canvas = document.getElementById('scoreGauge');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
 
-  const color = score >= 80 ? '#00ff88' : score >= 50 ? '#ffbb00' : '#ff4444';
+  const existingChart = Chart.getChart(canvas);
+  if (existingChart) existingChart.destroy();
+  if (gaugeChart) { gaugeChart.destroy(); gaugeChart = null; }
+
+  const clampedScore = Math.max(0, Math.min(100, Math.round(Number(score) || 0)));
+  const isLight = document.body.classList.contains('light-mode') || document.documentElement.classList.contains('light-mode');
+  const trackColor = isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)';
+  const color = clampedScore >= 80 ? '#00ff88' : clampedScore >= 50 ? '#ffbb00' : '#ff4444';
+
   gaugeChart = new Chart(ctx, {
     type: 'doughnut',
     data: {
       datasets: [{
-        data: [score, 100 - score],
-        backgroundColor: [color, 'rgba(255,255,255,0.06)'],
+        data: [clampedScore, 100 - clampedScore],
+        backgroundColor: [color, trackColor],
         borderWidth: 0,
         circumference: 270,
         rotation: 225,
@@ -379,6 +410,7 @@ function drawGauge(score) {
     },
     options: {
       cutout: '78%',
+      responsive: false,
       plugins: { legend: { display: false }, tooltip: { enabled: false } },
       animation: { animateRotate: true, duration: 800 }
     }
@@ -438,10 +470,12 @@ function displayAiFix(data) {
     mode: modeMap[langVal] || 'python',
     theme: document.body.classList.contains('dark-mode') ? 'dracula' : 'eclipse',
     lineNumbers: true,
+    lineWrapping: true,
     readOnly: true,
     direction: 'ltr',
   });
-  fixedEditor.setSize(null, '320px');
+  fixedEditor.setSize('100%', '320px');
+  setTimeout(() => fixedEditor.refresh(), 50);
 
   // Explanation — sanitized with DOMPurify
   const explanation = data.explanation || '';
@@ -451,7 +485,6 @@ function displayAiFix(data) {
   } else {
     rendered = explanation.replace(/\n/g, '<br>');
   }
-  // Sanitize to prevent XSS
   if (typeof DOMPurify !== 'undefined') {
     rendered = DOMPurify.sanitize(rendered);
   }
@@ -462,18 +495,33 @@ function displayAiFix(data) {
 
 function copyFixedCode() {
   const code = fixedEditor ? fixedEditor.getValue() : document.getElementById('fixedCodeEditor').value;
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(code).then(() => showToast('کد کپی شد! ✅', 'success'));
-  } else {
-    // Fallback for HTTP
+  if (!code) { showToast('کدی برای کپی وجود ندارد', 'warning'); return; }
+
+  function fallbackCopy(text) {
     const ta = document.createElement('textarea');
-    ta.value = code;
-    ta.style.cssText = 'position:fixed;left:-9999px';
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;';
     document.body.appendChild(ta);
+    ta.focus();
     ta.select();
-    document.execCommand('copy');
+    ta.setSelectionRange(0, 99999);
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) showToast('کد کپی شد! ✅', 'success');
+      else showToast('خطا در کپی کد', 'danger');
+    } catch (err) {
+      showToast('مرورگر اجازه کپی خودکار را نداد', 'danger');
+    }
     ta.remove();
-    showToast('کد کپی شد! ✅', 'success');
+  }
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(code)
+      .then(() => showToast('کد کپی شد! ✅', 'success'))
+      .catch(() => fallbackCopy(code));
+  } else {
+    fallbackCopy(code);
   }
 }
 
@@ -482,14 +530,21 @@ function copyFixedCode() {
 // ──────────────────────────────────────────────
 function openSettings() {
   document.getElementById('apiKeyInput').value = geminiApiKey;
-  document.getElementById('settingsModal').classList.remove('hidden');
+  const modal = document.getElementById('settingsModal');
+  modal.classList.remove('hidden');
+  setTimeout(() => document.getElementById('apiKeyInput').focus(), 50);
 }
 function closeSettings() {
   document.getElementById('settingsModal').classList.add('hidden');
 }
 function saveSettings() {
   geminiApiKey = document.getElementById('apiKeyInput').value.trim();
-  // Save to server session (secure, not in localStorage)
+  if (geminiApiKey) {
+    localStorage.setItem('gemini_api_key', geminiApiKey);
+  } else {
+    localStorage.removeItem('gemini_api_key');
+  }
+
   fetch('/api/settings', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -506,19 +561,37 @@ document.getElementById('settingsModal').addEventListener('click', function(e) {
   if (e.target === this) closeSettings();
 });
 
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeSettings();
+    closeDropdown();
+  }
+});
+
 // ──────────────────────────────────────────────
 // Helpers
 // ──────────────────────────────────────────────
 function setLoading(show, text = '') {
   document.getElementById('loadingState').classList.toggle('hidden', !show);
-  document.getElementById('resultsArea').classList.toggle('hidden', show);
-  document.getElementById('emptyState').classList.toggle('hidden', show || currentScanResult);
+  if (show) {
+    document.getElementById('resultsArea').classList.add('hidden');
+    document.getElementById('emptyState').classList.add('hidden');
+  } else if (!currentScanResult) {
+    document.getElementById('emptyState').classList.remove('hidden');
+    document.getElementById('resultsArea').classList.add('hidden');
+  }
   if (text) document.getElementById('loadingText').textContent = text;
 }
 
 function resetResults() {
   document.getElementById('aiFixer').classList.add('hidden');
   if (fixedEditor) { fixedEditor.toTextArea(); fixedEditor = null; }
+  const canvas = document.getElementById('scoreGauge');
+  if (canvas) {
+    const existing = Chart.getChart(canvas);
+    if (existing) existing.destroy();
+  }
+  if (gaugeChart) { gaugeChart.destroy(); gaugeChart = null; }
 }
 
 function showToast(message, type = 'info') {
@@ -535,6 +608,9 @@ window.addEventListener('themeChanged', (e) => {
   const theme = e.detail.dark ? 'dracula' : 'eclipse';
   editor.setOption('theme', theme);
   if (fixedEditor) fixedEditor.setOption('theme', theme);
+  if (currentScanResult && typeof currentScanResult.score === 'number') {
+    drawGauge(currentScanResult.score);
+  }
 });
 
 // Init

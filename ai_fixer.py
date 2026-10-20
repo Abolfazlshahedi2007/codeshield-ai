@@ -277,20 +277,26 @@ if __name__ == '__main__':
 def get_offline_fix(code: str, language: str, issues: list) -> dict:
     """
     Select the best offline fallback based on detected issues and language.
+    Guarantees matching the requested language.
     """
-    issue_ids = {i["id"] for i in issues}
+    issue_ids = set()
+    if isinstance(issues, list):
+        for i in issues:
+            if isinstance(i, dict) and "id" in i:
+                issue_ids.add(i["id"])
 
-    # Match based on language + issue combination
-    if language == "php" and "sql_injection" in issue_ids:
+    norm_lang = language.lower() if isinstance(language, str) else "python"
+
+    if norm_lang == "php":
         sample = OFFLINE_FIXES["php_sqli_xss"]
-    elif language == "python" and "dangerous_functions" in issue_ids:
-        sample = OFFLINE_FIXES["python_secrets_eval"]
-    elif language == "javascript" and "xss" in issue_ids:
+    elif norm_lang == "javascript":
         sample = OFFLINE_FIXES["javascript_xss_token"]
-    elif language == "python" and "hardcoded_secrets" in issue_ids:
-        sample = OFFLINE_FIXES["python_secrets_eval"]
+    elif norm_lang == "python":
+        if "dangerous_functions" in issue_ids or "hardcoded_secrets" in issue_ids or "sql_injection" in issue_ids:
+            sample = OFFLINE_FIXES["python_secrets_eval"]
+        else:
+            sample = OFFLINE_FIXES["python_secure"]
     else:
-        # Generic fallback: clean Python
         sample = OFFLINE_FIXES["python_secure"]
 
     return {

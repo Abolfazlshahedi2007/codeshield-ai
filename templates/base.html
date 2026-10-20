@@ -8,6 +8,14 @@
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <script>
+    (function() {
+      var saved = localStorage.getItem('codeshield_theme');
+      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var isDark = saved !== null ? saved === 'dark' : prefersDark !== false;
+      document.documentElement.className = isDark ? 'dark-mode' : 'light-mode';
+    })();
+  </script>
   {% block extra_head %}{% endblock %}
 </head>
 <body class="dark-mode" id="body">

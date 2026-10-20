@@ -20,15 +20,16 @@ RULES = [
                 r"'.*\s*(SELECT|INSERT|UPDATE|DELETE)\s+.*'\s*\.\s*\$",
             ],
             "python": [
-                r'execute\s*\(\s*[f"\'].*SELECT.*%s.*[f"\']\s*%',
-                r'execute\s*\(\s*f["\'].*\{.*\}.*SELECT',
-                r'execute\s*\(\s*f["\'].*(SELECT|INSERT|UPDATE|DELETE)',
-                r'cursor\.execute\s*\(\s*".*\+',
-                r'cursor\.execute\s*\(\s*\'.*\+',
+                r'execute\s*\(\s*[f"\'].*?(SELECT|INSERT|UPDATE|DELETE).*?%s.*?[f"\']\s*%',
+                r'execute\s*\(\s*f["\'].*?(SELECT|INSERT|UPDATE|DELETE).*?\{.*?\}',
+                r'execute\s*\(\s*f["\'].*?\{.*?\}.*?(SELECT|INSERT|UPDATE|DELETE)',
+                r'cursor\.execute\s*\(\s*["\'].*?\+',
+                r'(SELECT|INSERT|UPDATE|DELETE).*?["\']\s*%\s*\(',
             ],
             "javascript": [
-                r'query\s*\(\s*`.*\$\{.*\}.*SELECT',
-                r'query\s*\(\s*["\'].*SELECT.*["\'].*\+',
+                r'query\s*\(\s*`.*?(SELECT|INSERT|UPDATE|DELETE).*?\$\{.*?\}',
+                r'query\s*\(\s*`.*?\$\{.*?\}.*?(SELECT|INSERT|UPDATE|DELETE)',
+                r'query\s*\(\s*["\'].*?(SELECT|INSERT|UPDATE|DELETE).*?["\']\s*\+',
             ],
         },
     },
@@ -50,10 +51,11 @@ RULES = [
                 r'render_template_string\s*\(.*request\.',
             ],
             "javascript": [
-                r'\.innerHTML\s*=\s*(?!.*DOMPurify)',
+                r'\.innerHTML\s*=\s*(?!["\'][\w\s<>/]*["\'])(?!.*DOMPurify).*\b\w+',
+                r'\.innerHTML\s*=\s*`.*?\$\{.*?\}',
                 r'document\.write\s*\(',
-                r'\.outerHTML\s*=',
-                r'insertAdjacentHTML\s*\(',
+                r'\.outerHTML\s*=\s*(?!["\'][\w\s<>/]*["\'])(?!.*DOMPurify).*\b\w+',
+                r'insertAdjacentHTML\s*\(\s*["\'][^"\']+["\']\s*,\s*(?!.*DOMPurify).*\b\w+',
             ],
         },
     },
@@ -70,12 +72,12 @@ RULES = [
                 r'(\$api_key|\$secret|\$token|API_KEY|SECRET|TOKEN)\s*=\s*["\'][^"\']{4,}["\']',
             ],
             "python": [
-                r'(?<!os\.environ\.get\()(?<!secrets\.)\b(password|passwd|pwd|api_key|secret_key|SECRET_KEY)\s*=\s*["\'][^"\']+["\']',
-                r'\b(api_key|token)\s*=\s*["\'][^"\']{6,}["\']',
+                r'^\s*(password|passwd|pwd|api_key|secret_key|token|auth_token)\s*=\s*["\'][^"\']{4,}["\']',
+                r'\b(api_key|secret|token)\s*=\s*["\'][a-zA-Z0-9_\-]{8,}["\']',
             ],
             "javascript": [
-                r'(password|passwd|api_key|apiKey|secret|token|SECRET)\s*=\s*["\'][^"\']+["\']',
-                r'const\s+(password|api_key|secret|token)\s*=\s*["\']',
+                r'^\s*(const|let|var)\s+(password|api_key|apiKey|secret|token|SECRET)\s*=\s*["\'][^"\']{4,}["\']',
+                r'const\s+(API_TOKEN|SECRET_KEY|API_KEY)\s*=\s*["\'][^"\']+["\']',
             ],
         },
     },
@@ -99,8 +101,7 @@ RULES = [
                 r'\beval\s*\(',
                 r'\bexec\s*\(',
                 r'\bos\.system\s*\(',
-                r'\bsubprocess\.call\s*\(.*shell\s*=\s*True',
-                r'\bsubprocess\.run\s*\(.*shell\s*=\s*True',
+                r'\bsubprocess\.(call|run|Popen)\s*\(.*?shell\s*=\s*(True|1)',
                 r'\b__import__\s*\(',
             ],
             "javascript": [
@@ -155,7 +156,7 @@ RULES = [
                 r'app\.run\s*\(.*debug\s*=\s*True',
             ],
             "javascript": [
-                r'debugger\s*;',
+                r'\bdebugger\b',
             ],
         },
     },
@@ -169,7 +170,24 @@ def scan_code(code: str, language: str) -> dict:
     Scan code for security vulnerabilities.
     Returns a dict with score, issues list, and summary.
     """
-    language = language.lower()
+    if not isinstance(code, str) or not code.strip():
+        return {
+            "score": 0,
+            "issues": [{
+                "id": "empty_code",
+                "title": "کدی ارسال نشده است",
+                "title_en": "Empty Code",
+                "severity": "low",
+                "deduction": 0,
+                "description": "هیچ کدی برای تحلیل ارسال نشده است.",
+                "lines": [],
+            }],
+            "issues_count": 0,
+            "total_deduction": 0,
+            "language": language if isinstance(language, str) else "python",
+        }
+
+    language = language.lower() if isinstance(language, str) else "python"
     if language not in ("php", "python", "javascript"):
         language = "python"
 
@@ -185,8 +203,13 @@ def scan_code(code: str, language: str) -> dict:
 
         matched_lines = []
         for pattern in patterns:
-            for line_no, line in enumerate(lines, start=1):
-                if re.search(pattern, line, re.IGNORECASE):
+            compiled = re.compile(pattern, re.IGNORECASE)
+            for line_no, raw_line in enumerate(lines, start=1):
+                stripped = raw_line.strip()
+                # Skip comments to prevent false positives
+                if stripped.startswith(("#", "//", "/*", "*")):
+                    continue
+                if compiled.search(raw_line):
                     if line_no not in matched_lines:
                         matched_lines.append(line_no)
 
@@ -205,10 +228,8 @@ def scan_code(code: str, language: str) -> dict:
                 }
             )
 
-    # Sort by severity
     issues.sort(key=lambda x: SEVERITY_ORDER.get(x["severity"], 99))
-
-    score = max(0, 100 - total_deduction)
+    score = max(0, min(100, 100 - total_deduction))
 
     return {
         "score": score,

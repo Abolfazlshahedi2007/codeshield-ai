@@ -15,7 +15,7 @@
   --border-glow: #00ff8840;
   --text-primary: #e6edf3;
   --text-secondary: #8b949e;
-  --text-muted: #484f58;
+  --text-muted: #8b949e;
   --accent-green: #00ff88;
   --accent-green-dim: #00ff8833;
   --accent-red: #ff4444;
@@ -30,10 +30,10 @@
   --shadow: 0 4px 24px rgba(0,0,0,0.4);
   --shadow-glow: 0 0 20px rgba(0,255,136,0.15);
   --transition: 0.25s ease;
-  --font: 'Vazirmatn', sans-serif;
+  --font: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Arial, sans-serif;
 }
 
-body.light-mode {
+body.light-mode, html.light-mode body {
   --bg-primary: #f0f4f8;
   --bg-secondary: #ffffff;
   --bg-card: #ffffff;
@@ -41,8 +41,8 @@ body.light-mode {
   --border: #d1d9e0;
   --border-glow: #0066ff30;
   --text-primary: #1c2128;
-  --text-secondary: #57606a;
-  --text-muted: #8c959f;
+  --text-secondary: #424a53;
+  --text-muted: #57606a;
   --accent-green: #1a7f37;
   --accent-green-dim: #1a7f3720;
   --accent-red: #cf222e;
@@ -533,6 +533,7 @@ a:hover { text-decoration: underline; }
 .lang-python { background: #3776ab22; color: #3776ab; border: 1px solid #3776ab44; }
 .lang-php { background: #7a86b844; color: #a0a8d0; border: 1px solid #7a86b866; }
 .lang-javascript { background: #f7df1e22; color: #ccb800; border: 1px solid #f7df1e44; }
+body.light-mode .lang-javascript { background: #fff8c5; color: #7d5a00; border: 1px solid #d4a72c88; }
 
 .score-pill {
   border-radius: 999px; display: inline-block; font-size: 0.85rem; font-weight: 700;
@@ -581,3 +582,29 @@ a:hover { text-decoration: underline; }
 .toast-danger  { border-color: var(--accent-red);   color: var(--accent-red);   }
 .toast-warning { border-color: var(--accent-yellow); color: var(--accent-yellow); }
 .toast-info    { border-color: var(--accent-blue);  color: var(--accent-blue);  }
+
+/* Responsive auth & history overrides */
+@media (max-width: 640px) {
+  .history-wrapper { padding: 0.75rem; }
+  .history-table th, .history-table td {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  .code-snippet-preview { max-width: 140px; }
+  .history-table-wrapper {
+    box-shadow: inset -10px 0 10px -10px rgba(0,0,0,0.3);
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-wrapper { padding: 1rem; }
+  .auth-card {
+    padding: 1.5rem 1.25rem;
+    border-radius: 16px;
+    max-width: 100%;
+  }
+  .shield-icon { font-size: 2.75rem; }
+  .auth-title { font-size: 1.5rem; }
+  .navbar { height: auto; min-height: var(--navbar-h); padding: 0.5rem 1rem; }
+  .navbar-actions .btn { font-size: 0.75rem; padding: 0.35rem 0.6rem; }
+}

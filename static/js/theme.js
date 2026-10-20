@@ -13,6 +13,8 @@
   function applyTheme(dark) {
     body.classList.toggle('dark-mode', dark);
     body.classList.toggle('light-mode', !dark);
+    document.documentElement.classList.toggle('dark-mode', dark);
+    document.documentElement.classList.toggle('light-mode', !dark);
     // Notify other scripts (e.g. CodeMirror theme swap)
     window.dispatchEvent(new CustomEvent('themeChanged', { detail: { dark } }));
     // Update toggle button icon

@@ -5,13 +5,14 @@ import json
 import os
 import re
 import secrets
+from datetime import datetime, timedelta
 import requests as http_requests
 
-from datetime import datetime
 from flask import (Flask, flash, jsonify, redirect, render_template,
                    request, session, url_for)
 from flask_login import (LoginManager, current_user, login_required,
                          login_user, logout_user)
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from dotenv import load_dotenv
 
 from database import Scan, User, db
@@ -24,10 +25,16 @@ load_dotenv()
 #  App Configuration
 # ──────────────────────────────────────────────
 app = Flask(__name__)
+
+secret_key = os.environ.get("SECRET_KEY")
+if not secret_key:
+    secret_key = "codeshield-dev-session-secret-key-stable"
+
 app.config.update(
-    SECRET_KEY=os.environ.get("SECRET_KEY", secrets.token_hex(32)),
+    SECRET_KEY=secret_key,
     SQLALCHEMY_DATABASE_URI="sqlite:///codeshield.db",
     SQLALCHEMY_TRACK_MODIFICATIONS=False,
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
 )
@@ -195,6 +202,10 @@ def index():
     return redirect(url_for("login"))
 
 
+EMAIL_REGEX = re.compile(r"^[\w\.-]+@[\w\.-]+\.\w+$")
+USERNAME_REGEX = re.compile(r"^[\w\u0600-\u06FF\s.-]{3,50}$")
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
@@ -204,10 +215,18 @@ def login():
         if action == "demo":
             demo_user = User.query.filter_by(username="داور").first()
             if not demo_user:
-                demo_user = User(username="داور", email="judge@demo.local", is_demo=True)
-                demo_user.set_password("demo1234")
-                db.session.add(demo_user)
-                db.session.commit()
+                try:
+                    demo_user = User(username="داور", email="judge@demo.local", is_demo=True)
+                    demo_user.set_password("demo1234")
+                    db.session.add(demo_user)
+                    db.session.commit()
+                except IntegrityError:
+                    db.session.rollback()
+                    demo_user = User.query.filter_by(username="داور").first()
+                except SQLAlchemyError:
+                    db.session.rollback()
+                    flash("خطای پایگاه داده هنگام ورود داور.", "danger")
+                    return redirect(url_for("login"))
             login_user(demo_user)
             flash("خوش آمدید! وارد حساب داور شدید.", "success")
             return redirect(url_for("dashboard"))
@@ -235,9 +254,16 @@ def register():
         if not username or not email or not password:
             flash("تمام فیلدها را پر کنید.", "danger")
             return render_template("register.html")
-        if len(password) < 8:
+        if not USERNAME_REGEX.match(username):
+            flash("نام کاربری باید بین ۳ تا ۵۰ کاراکتر باشد.", "danger")
+            return render_template("register.html")
+        if not EMAIL_REGEX.match(email) or len(email) > 120:
+            flash("فرمت ایمیل نامعتبر است.", "danger")
+            return render_template("register.html")
+        if len(password) < 8 or len(password) > 128:
             flash("رمز عبور باید حداقل ۸ کاراکتر باشد.", "danger")
             return render_template("register.html")
+
         if User.query.filter_by(username=username).first():
             flash("این نام کاربری قبلاً ثبت شده است.", "danger")
             return render_template("register.html")
@@ -245,13 +271,22 @@ def register():
             flash("این ایمیل قبلاً ثبت شده است.", "danger")
             return render_template("register.html")
 
-        user = User(username=username, email=email)
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
-        login_user(user)
-        flash("ثبت‌نام موفق! به سپر کد خوش آمدید.", "success")
-        return redirect(url_for("dashboard"))
+        try:
+            user = User(username=username, email=email)
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+            login_user(user)
+            flash("ثبت‌نام موفق! به سپر کد خوش آمدید.", "success")
+            return redirect(url_for("dashboard"))
+        except IntegrityError:
+            db.session.rollback()
+            flash("نام کاربری یا ایمیل از قبل ثبت شده است.", "danger")
+            return render_template("register.html")
+        except SQLAlchemyError:
+            db.session.rollback()
+            flash("خطای سرور در ثبت اطلاعات. لطفاً دوباره تلاش کنید.", "danger")
+            return render_template("register.html")
     return render_template("register.html")
 
 
@@ -299,47 +334,66 @@ def history():
 @app.route("/api/scan", methods=["POST"])
 @login_required
 def api_scan():
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "داده‌ای ارسال نشد"}), 400
-    code = data.get("code", "").strip()
-    language = data.get("language", "python").lower()
-    if not code:
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "فرمت داده ارسالی باید JSON باشد"}), 400
+
+    raw_code = data.get("code")
+    if not isinstance(raw_code, str) or not raw_code.strip():
         return jsonify({"error": "کدی برای اسکن ارسال نشد"}), 400
 
+    if len(raw_code) > 100_000:
+        return jsonify({"error": "حجم کد ارسالی بیش از حد مجاز است (حداکثر ۱۰۰ کیلوبایت)"}), 400
+
+    raw_lang = data.get("language", "python")
+    language = raw_lang.lower().strip() if isinstance(raw_lang, str) else "python"
+    if language not in ("php", "python", "javascript"):
+        language = "python"
+
+    code = raw_code.strip()
     result = scan_code(code, language)
 
     # Save to DB
-    snippet = code[:500] + ("..." if len(code) > 500 else "")
-    scan = Scan(
-        user_id=current_user.id,
-        language=language,
-        code_snippet=snippet,
-        score=result["score"],
-        issues_count=result["issues_count"],
-        issues_json=json.dumps(result["issues"], ensure_ascii=False),
-    )
-    db.session.add(scan)
-    db.session.commit()
+    try:
+        snippet = code[:500] + ("..." if len(code) > 500 else "")
+        scan = Scan(
+            user_id=current_user.id,
+            language=language,
+            code_snippet=snippet,
+            score=result["score"],
+            issues_count=result["issues_count"],
+            issues_json=json.dumps(result["issues"], ensure_ascii=False),
+        )
+        db.session.add(scan)
+        db.session.commit()
+        result["scan_id"] = scan.id
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        app.logger.warning(f"Failed to save scan record: {e}")
+        result["scan_id"] = None
 
-    result["scan_id"] = scan.id
     return jsonify(result)
 
 
 @app.route("/api/ai-fix", methods=["POST"])
 @login_required
 def api_ai_fix():
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "داده‌ای ارسال نشد"}), 400
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "فرمت داده ارسالی باید JSON باشد"}), 400
 
-    code = data.get("code", "").strip()
-    language = data.get("language", "python").lower()
-    issues = data.get("issues", [])
-    api_key = session.get("gemini_api_key", "") or os.environ.get("GEMINI_API_KEY", "")
-
-    if not code:
+    raw_code = data.get("code")
+    if not isinstance(raw_code, str) or not raw_code.strip():
         return jsonify({"error": "کدی ارسال نشد"}), 400
+
+    code = raw_code.strip()
+    raw_lang = data.get("language", "python")
+    language = raw_lang.lower().strip() if isinstance(raw_lang, str) else "python"
+    issues = data.get("issues", [])
+    if not isinstance(issues, list):
+        issues = []
+
+    api_key = session.get("gemini_api_key", "") or os.environ.get("GEMINI_API_KEY", "")
 
     # Try Gemini API
     if api_key:
@@ -348,89 +402,98 @@ def api_ai_fix():
             if result:
                 return jsonify(result)
         except Exception as e:
-            app.logger.warning(f"Gemini API failed: {e}. Using offline fallback.")
+            app.logger.warning(f"Gemini API invocation error: {e}. Falling back to offline mode.")
 
     # Offline fallback
     fallback = get_offline_fix(code, language, issues)
     fallback["message"] = (
-        "⚠️ از حالت آفلاین استفاده می‌شود. برای دریافت اصلاح هوشمند واقعی، کلید Gemini API را در تنظیمات وارد کنید."
+        "⚠️ از حالت آفلاین استفاده می‌شود. برای دریافت اصلاح هوشمند زنده، کلید Gemini API را در تنظیمات وارد کنید."
         if not api_key
-        else "⚠️ اتصال به API ناموفق بود. از نمونه آفلاین استفاده می‌شود."
+        else "⚠️ اتصال به API ناموفق بود. از نمونه آفلاین به عنوان جایگزین استفاده شد."
     )
     return jsonify(fallback)
 
 
 def call_gemini_api(code: str, language: str, issues: list, api_key: str) -> dict | None:
-    """Call Google Gemini API to fix vulnerable code."""
-    issues_text = "\n".join(
-        [f"- {i.get('title','')}: {i.get('description','')} (خطوط: {i.get('lines',[])})" for i in issues]
-    )
-    prompt = f"""شما یک متخصص امنیت نرم‌افزار هستید. کد {language} زیر دارای آسیب‌پذیری‌های امنیتی است.
+    """Call Google Gemini API with native JSON response mode and secure headers."""
+    issues_list = []
+    if isinstance(issues, list):
+        for i in issues:
+            if isinstance(i, dict):
+                issues_list.append(f"- {i.get('title','')}: {i.get('description','')} (خطوط: {i.get('lines',[])})")
+    issues_text = "\n".join(issues_list) if issues_list else "موردی ثبت نشده است."
+
+    prompt = f"""شما یک متخصص ارشد امنیت نرم‌افزار هستید. کد {language} زیر دارای آسیب‌پذیری‌های امنیتی است.
 
 آسیب‌پذیری‌های شناسایی‌شده:
 {issues_text}
 
 کد آسیب‌پذیر:
-```{language}
+```
 {code}
 ```
 
-لطفاً:
-1. کد را کاملاً بازنویسی کنید و تمام آسیب‌پذیری‌ها را رفع کنید.
-2. توضیح فارسی کوتاهی برای هر اصلاح بنویسید.
+وظایف شما:
+1. کد را کاملاً بازنویسی کرده و تمام آسیب‌پذیری‌ها را رفع کنید.
+2. توضیح فارسی کاملی از اصلاحات امنیتی ارائه دهید.
 
-پاسخ را دقیقاً با این فرمت JSON برگردانید:
+خروجی باید منحصراً یک شیء JSON با ساختار زیر باشد:
 {{
-  "fixed_code": "کد امن‌سازی‌شده اینجا",
-  "explanation": "توضیح فارسی اصلاحات اینجا"
+  "fixed_code": "کد اصلاح‌شده",
+  "explanation": "توضیح فارسی"
 }}"""
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": api_key,
+    }
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 4096},
+        "generationConfig": {
+            "temperature": 0.2,
+            "maxOutputTokens": 4096,
+            "responseMimeType": "application/json",
+        },
     }
-    resp = http_requests.post(url, json=payload, timeout=30)
-    resp.raise_for_status()
-    content = resp.json()
 
-    # Safe extraction with proper error handling
+    try:
+        resp = http_requests.post(url, headers=headers, json=payload, timeout=25)
+        resp.raise_for_status()
+        content = resp.json()
+    except Exception as e:
+        app.logger.warning("Gemini API HTTP request failed. Using offline fallback.")
+        return None
+
     candidates = content.get("candidates", [])
     if not candidates:
-        app.logger.warning("Gemini API returned no candidates")
         return None
 
     parts = candidates[0].get("content", {}).get("parts", [])
     if not parts:
-        app.logger.warning("Gemini API returned empty parts")
         return None
 
-    text = parts[0].get("text", "")
+    text = parts[0].get("text", "").strip()
     if not text:
         return None
 
-    # Use non-greedy JSON extraction to avoid matching multiple objects
-    json_match = re.search(r'\{[\s\S]*?"fixed_code"[\s\S]*?"explanation"[\s\S]*?\}', text)
-    if not json_match:
-        # Fallback: try to find any JSON block
-        json_match = re.search(r'```json\s*(\{[\s\S]*?\})\s*```', text)
-        if json_match:
-            json_str = json_match.group(1)
-        else:
-            return None
-    else:
-        json_str = json_match.group()
+    # Strip code block markers if present
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s*```$", "", text)
 
     try:
-        parsed = json.loads(json_str)
-        return {
-            "fixed_code": parsed.get("fixed_code", ""),
-            "explanation": parsed.get("explanation", ""),
-            "source": "gemini",
-        }
+        parsed = json.loads(text)
+        if isinstance(parsed, dict) and "fixed_code" in parsed:
+            return {
+                "fixed_code": str(parsed.get("fixed_code", "")),
+                "explanation": str(parsed.get("explanation", "")),
+                "source": "gemini",
+            }
     except json.JSONDecodeError:
-        app.logger.warning("Failed to parse Gemini API JSON response")
-        return None
+        app.logger.warning("Failed to decode JSON from Gemini API response.")
+
+    return None
 
 
 @app.route("/api/samples")
@@ -442,10 +505,16 @@ def api_samples():
 @app.route("/api/settings", methods=["POST"])
 @login_required
 def api_settings():
-    data = request.get_json()
-    api_key = data.get("api_key", "").strip()
-    if api_key:
-        session["gemini_api_key"] = api_key
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "فرمت داده نامعتبر است"}), 400
+
+    api_key = data.get("api_key")
+    if isinstance(api_key, str) and api_key.strip():
+        clean_key = api_key.strip()
+        if len(clean_key) > 120:
+            return jsonify({"error": "طول کلید نامعتبر است"}), 400
+        session["gemini_api_key"] = clean_key
     else:
         session.pop("gemini_api_key", None)
     return jsonify({"success": True, "message": "تنظیمات ذخیره شد"})
