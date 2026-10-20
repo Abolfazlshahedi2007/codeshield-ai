@@ -336,7 +336,7 @@ def api_ai_fix():
     code = data.get("code", "").strip()
     language = data.get("language", "python").lower()
     issues = data.get("issues", [])
-    api_key = data.get("api_key", "").strip() or os.environ.get("GEMINI_API_KEY", "")
+    api_key = session.get("gemini_api_key", "") or os.environ.get("GEMINI_API_KEY", "")
 
     if not code:
         return jsonify({"error": "کدی ارسال نشد"}), 400
@@ -385,7 +385,7 @@ def call_gemini_api(code: str, language: str, issues: list, api_key: str) -> dic
   "explanation": "توضیح فارسی اصلاحات اینجا"
 }}"""
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"temperature": 0.2, "maxOutputTokens": 4096},
@@ -393,18 +393,44 @@ def call_gemini_api(code: str, language: str, issues: list, api_key: str) -> dic
     resp = http_requests.post(url, json=payload, timeout=30)
     resp.raise_for_status()
     content = resp.json()
-    text = content["candidates"][0]["content"]["parts"][0]["text"]
 
-    # Extract JSON from response
-    json_match = re.search(r'\{[\s\S]*\}', text)
-    if json_match:
-        parsed = json.loads(json_match.group())
+    # Safe extraction with proper error handling
+    candidates = content.get("candidates", [])
+    if not candidates:
+        app.logger.warning("Gemini API returned no candidates")
+        return None
+
+    parts = candidates[0].get("content", {}).get("parts", [])
+    if not parts:
+        app.logger.warning("Gemini API returned empty parts")
+        return None
+
+    text = parts[0].get("text", "")
+    if not text:
+        return None
+
+    # Use non-greedy JSON extraction to avoid matching multiple objects
+    json_match = re.search(r'\{[\s\S]*?"fixed_code"[\s\S]*?"explanation"[\s\S]*?\}', text)
+    if not json_match:
+        # Fallback: try to find any JSON block
+        json_match = re.search(r'```json\s*(\{[\s\S]*?\})\s*```', text)
+        if json_match:
+            json_str = json_match.group(1)
+        else:
+            return None
+    else:
+        json_str = json_match.group()
+
+    try:
+        parsed = json.loads(json_str)
         return {
             "fixed_code": parsed.get("fixed_code", ""),
             "explanation": parsed.get("explanation", ""),
             "source": "gemini",
         }
-    return None
+    except json.JSONDecodeError:
+        app.logger.warning("Failed to parse Gemini API JSON response")
+        return None
 
 
 @app.route("/api/samples")
@@ -418,7 +444,10 @@ def api_samples():
 def api_settings():
     data = request.get_json()
     api_key = data.get("api_key", "").strip()
-    session["gemini_api_key"] = api_key
+    if api_key:
+        session["gemini_api_key"] = api_key
+    else:
+        session.pop("gemini_api_key", None)
     return jsonify({"success": True, "message": "تنظیمات ذخیره شد"})
 
 

@@ -8,14 +8,20 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/eclipse.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<!-- PHP mode requires xml, htmlmixed, clike -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/php/php.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<!-- Marked.js for Markdown -->
+<!-- Marked.js for Markdown + DOMPurify for XSS protection -->
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 {% endblock %}
 
 {% block body %}
@@ -210,7 +216,7 @@ let geminiApiKey = localStorage.getItem('gemini_api_key') || '';
 // Language change
 // ──────────────────────────────────────────────
 function changeLanguage(lang) {
-  const modeMap = { python: 'python', php: 'php', javascript: 'javascript' };
+  const modeMap = { python: 'python', php: 'application/x-httpd-php', javascript: 'javascript' };
   editor.setOption('mode', modeMap[lang] || 'python');
 }
 
@@ -220,6 +226,7 @@ function changeLanguage(lang) {
 async function loadSamples() {
   try {
     const resp = await fetch('/api/samples');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
     samplesData = await resp.json();
   } catch(e) { console.error('Failed to load samples', e); }
 }
@@ -245,12 +252,26 @@ document.addEventListener('click', e => {
 });
 
 // ──────────────────────────────────────────────
+// Safe text helper (prevent XSS)
+// ──────────────────────────────────────────────
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ──────────────────────────────────────────────
 // Run scan
 // ──────────────────────────────────────────────
 async function runScan() {
   const code = editor.getValue().trim();
   if (!code) { showToast('لطفاً کدی وارد کنید', 'warning'); return; }
   const language = document.getElementById('languageSelect').value;
+
+  // Disable button to prevent double-click
+  const scanBtn = document.getElementById('scanBtn');
+  scanBtn.disabled = true;
+  scanBtn.style.opacity = '0.6';
 
   setLoading(true, 'در حال اسکن کد...');
   resetResults();
@@ -261,13 +282,20 @@ async function runScan() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ code, language })
     });
+    if (!resp.ok) {
+      const errData = await resp.json().catch(() => ({}));
+      throw new Error(errData.error || 'HTTP ' + resp.status);
+    }
     const data = await resp.json();
     setLoading(false);
     currentScanResult = data;
     displayResults(data);
   } catch(e) {
     setLoading(false);
-    showToast('خطا در ارتباط با سرور', 'danger');
+    showToast('خطا: ' + (e.message || 'ارتباط با سرور برقرار نشد'), 'danger');
+  } finally {
+    scanBtn.disabled = false;
+    scanBtn.style.opacity = '1';
   }
 }
 
@@ -307,15 +335,15 @@ function displayResults(data) {
     list.innerHTML = '<div class="no-issues">✅ کد شما از نظر قوانین محلی امن است!</div>';
   } else {
     list.innerHTML = data.issues.map(issue => `
-      <div class="issue-card severity-${issue.severity}">
+      <div class="issue-card severity-${escapeHtml(issue.severity)}">
         <div class="issue-header">
-          <span class="severity-badge severity-badge-${issue.severity}">${severityLabel(issue.severity)}</span>
-          <span class="issue-title">${issue.title}</span>
-          <span class="issue-deduction">-${issue.deduction} امتیاز</span>
+          <span class="severity-badge severity-badge-${escapeHtml(issue.severity)}">${severityLabel(issue.severity)}</span>
+          <span class="issue-title">${escapeHtml(issue.title)}</span>
+          <span class="issue-deduction">-${escapeHtml(String(issue.deduction))} امتیاز</span>
         </div>
-        <p class="issue-desc">${issue.description}</p>
+        <p class="issue-desc">${escapeHtml(issue.description)}</p>
         <div class="issue-lines">
-          📍 خطوط: ${issue.lines.map(l => `<span class="line-badge">${l}</span>`).join(' ')}
+          📍 خطوط: ${issue.lines.map(l => `<span class="line-badge">${escapeHtml(String(l))}</span>`).join(' ')}
         </div>
       </div>
     `).join('');
@@ -365,6 +393,9 @@ async function runAiFix() {
   const code = editor.getValue().trim();
   const language = document.getElementById('languageSelect').value;
 
+  const aiBtn = document.getElementById('aiFixBtn');
+  aiBtn.disabled = true;
+  aiBtn.style.opacity = '0.6';
   setLoading(true, 'در حال اصلاح هوشمند با هوش مصنوعی...');
 
   try {
@@ -378,6 +409,7 @@ async function runAiFix() {
         api_key: geminiApiKey
       })
     });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     setLoading(false);
     displayAiFix(data);
@@ -385,6 +417,9 @@ async function runAiFix() {
   } catch(e) {
     setLoading(false);
     showToast('خطا در اتصال به سرویس هوش مصنوعی', 'danger');
+  } finally {
+    aiBtn.disabled = false;
+    aiBtn.style.opacity = '1';
   }
 }
 
@@ -396,8 +431,11 @@ function displayAiFix(data) {
   const fixedTextarea = document.getElementById('fixedCodeEditor');
   fixedTextarea.value = data.fixed_code || '';
   if (fixedEditor) fixedEditor.toTextArea();
+
+  const langVal = document.getElementById('languageSelect').value;
+  const modeMap = { python: 'python', php: 'application/x-httpd-php', javascript: 'javascript' };
   fixedEditor = CodeMirror.fromTextArea(fixedTextarea, {
-    mode: document.getElementById('languageSelect').value,
+    mode: modeMap[langVal] || 'python',
     theme: document.body.classList.contains('dark-mode') ? 'dracula' : 'eclipse',
     lineNumbers: true,
     readOnly: true,
@@ -405,17 +443,38 @@ function displayAiFix(data) {
   });
   fixedEditor.setSize(null, '320px');
 
-  // Explanation
+  // Explanation — sanitized with DOMPurify
   const explanation = data.explanation || '';
-  document.getElementById('explanationContent').innerHTML =
-    typeof marked !== 'undefined' ? marked.parse(explanation) : explanation.replace(/\n/g, '<br>');
+  let rendered = '';
+  if (typeof marked !== 'undefined') {
+    rendered = marked.parse(explanation);
+  } else {
+    rendered = explanation.replace(/\n/g, '<br>');
+  }
+  // Sanitize to prevent XSS
+  if (typeof DOMPurify !== 'undefined') {
+    rendered = DOMPurify.sanitize(rendered);
+  }
+  document.getElementById('explanationContent').innerHTML = rendered;
 
   fixSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function copyFixedCode() {
   const code = fixedEditor ? fixedEditor.getValue() : document.getElementById('fixedCodeEditor').value;
-  navigator.clipboard.writeText(code).then(() => showToast('کد کپی شد! ✅', 'success'));
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(() => showToast('کد کپی شد! ✅', 'success'));
+  } else {
+    // Fallback for HTTP
+    const ta = document.createElement('textarea');
+    ta.value = code;
+    ta.style.cssText = 'position:fixed;left:-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    showToast('کد کپی شد! ✅', 'success');
+  }
 }
 
 // ──────────────────────────────────────────────
@@ -430,9 +489,18 @@ function closeSettings() {
 }
 function saveSettings() {
   geminiApiKey = document.getElementById('apiKeyInput').value.trim();
-  localStorage.setItem('gemini_api_key', geminiApiKey);
-  closeSettings();
-  showToast('تنظیمات ذخیره شد ✅', 'success');
+  // Save to server session (secure, not in localStorage)
+  fetch('/api/settings', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ api_key: geminiApiKey })
+  }).then(resp => resp.json()).then(data => {
+    closeSettings();
+    showToast('تنظیمات ذخیره شد ✅', 'success');
+  }).catch(() => {
+    closeSettings();
+    showToast('خطا در ذخیره تنظیمات', 'danger');
+  });
 }
 document.getElementById('settingsModal').addEventListener('click', function(e) {
   if (e.target === this) closeSettings();

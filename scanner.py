@@ -70,7 +70,8 @@ RULES = [
                 r'(\$api_key|\$secret|\$token|API_KEY|SECRET|TOKEN)\s*=\s*["\'][^"\']{4,}["\']',
             ],
             "python": [
-                r'(password|passwd|pwd|api_key|secret|token|SECRET_KEY)\s*=\s*["\'][^"\']+["\']',
+                r'(?<!os\.environ\.get\()(?<!secrets\.)\b(password|passwd|pwd|api_key|secret_key|SECRET_KEY)\s*=\s*["\'][^"\']+["\']',
+                r'\b(api_key|token)\s*=\s*["\'][^"\']{6,}["\']',
             ],
             "javascript": [
                 r'(password|passwd|api_key|apiKey|secret|token|SECRET)\s*=\s*["\'][^"\']+["\']',
@@ -154,7 +155,6 @@ RULES = [
                 r'app\.run\s*\(.*debug\s*=\s*True',
             ],
             "javascript": [
-                r'console\.(log|debug|info|warn|error)\s*\(',
                 r'debugger\s*;',
             ],
         },

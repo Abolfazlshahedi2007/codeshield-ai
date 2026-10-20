@@ -3,7 +3,7 @@
    Main Stylesheet
    ───────────────────────────────────────────────── */
 
-@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap');
+/* Font loaded via base.html <link> tag — no duplicate @import needed */
 
 /* ── CSS Variables ── */
 :root {
@@ -281,8 +281,13 @@ a:hover { text-decoration: underline; }
   .workspace {
     grid-template-columns: 1fr;
     height: auto;
+    min-height: calc(100vh - var(--navbar-h));
     overflow: auto;
   }
+  .panel { min-height: 400px; }
+  .navbar-actions { gap: 0.3rem; flex-wrap: wrap; }
+  .navbar-user { display: none; }
+  .panel-controls { flex-direction: column; align-items: stretch; }
 }
 
 .panel {
