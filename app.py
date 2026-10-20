@@ -504,7 +504,7 @@ def call_gemini_api(code: str, language: str, issues: list, api_key: str) -> dic
   "explanation": "توضیح فارسی"
 }}"""
 
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    models = ["gemini-flash-lite-latest", "gemini-3.5-flash", "gemini-flash-latest"]
     headers = {
         "Content-Type": "application/json",
         "x-goog-api-key": api_key,
@@ -518,42 +518,47 @@ def call_gemini_api(code: str, language: str, issues: list, api_key: str) -> dic
         },
     }
 
-    try:
-        resp = http_requests.post(url, headers=headers, json=payload, timeout=25)
-        resp.raise_for_status()
-        content = resp.json()
-    except Exception as e:
-        app.logger.warning("Gemini API HTTP request failed. Using offline fallback.")
-        return None
+    for model in models:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        try:
+            resp = http_requests.post(url, headers=headers, json=payload, timeout=20)
+            if resp.status_code != 200:
+                app.logger.warning(f"Model {model} returned HTTP {resp.status_code}: {resp.text[:150]}")
+                continue
 
-    candidates = content.get("candidates", [])
-    if not candidates:
-        return None
+            content = resp.json()
+            candidates = content.get("candidates", [])
+            if not candidates:
+                continue
 
-    parts = candidates[0].get("content", {}).get("parts", [])
-    if not parts:
-        return None
+            parts = candidates[0].get("content", {}).get("parts", [])
+            if not parts:
+                continue
 
-    text = parts[0].get("text", "").strip()
-    if not text:
-        return None
+            text = parts[0].get("text", "").strip()
+            if not text:
+                continue
 
-    # Strip code block markers if present
-    if text.startswith("```"):
-        text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
-        text = re.sub(r"\s*```$", "", text)
+            # Strip code block markers if present
+            if text.startswith("```"):
+                text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+                text = re.sub(r"\s*```$", "", text)
 
-    try:
-        parsed = json.loads(text)
-        if isinstance(parsed, dict) and "fixed_code" in parsed:
-            return {
-                "fixed_code": str(parsed.get("fixed_code", "")),
-                "explanation": str(parsed.get("explanation", "")),
-                "source": "gemini",
-                "source_label": "✨ هوش مصنوعی زنده (Gemini 2.0 Flash)",
-            }
-    except json.JSONDecodeError:
-        app.logger.warning("Failed to decode JSON from Gemini API response.")
+            try:
+                parsed = json.loads(text)
+                if isinstance(parsed, dict) and "fixed_code" in parsed:
+                    return {
+                        "fixed_code": str(parsed.get("fixed_code", "")),
+                        "explanation": str(parsed.get("explanation", "")),
+                        "source": "gemini",
+                        "source_label": f"✨ هوش مصنوعی Gemini ({model})",
+                    }
+            except json.JSONDecodeError:
+                app.logger.warning("Failed to decode JSON from Gemini API response.")
+                continue
+        except Exception as e:
+            app.logger.warning(f"Gemini API request failed for model {model}: {e}")
+            continue
 
     return None
 
