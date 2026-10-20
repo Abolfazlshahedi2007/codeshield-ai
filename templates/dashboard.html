@@ -59,6 +59,9 @@
     <div class="panel-header">
       <h2 class="panel-title">📝 ویرایشگر کد</h2>
       <div class="panel-controls">
+        <!-- Hidden file input for uploading from computer -->
+        <input type="file" id="fileUploadInput" accept=".py,.php,.js,.txt,.html,.sql" style="display:none;" onchange="handleFileUpload(event)">
+
         <!-- Language selector -->
         <select id="languageSelect" class="select-control" onchange="changeLanguage(this.value)">
           <option value="python">🐍 Python</option>
@@ -67,17 +70,29 @@
         </select>
         <!-- Demo samples dropdown -->
         <div class="dropdown">
-          <button class="btn btn-sm btn-secondary dropdown-toggle" onclick="toggleDropdown()">
+          <button class="btn btn-sm btn-secondary dropdown-toggle" onclick="toggleDropdown()" type="button">
             📂 نمونه‌های آماده ▾
           </button>
           <div class="dropdown-menu" id="samplesDropdown">
             {% for key, sample in demo_samples.items() %}
-            <button class="dropdown-item" onclick="loadSample('{{ key }}')">
+            <button class="dropdown-item" onclick="loadSample('{{ key }}')" type="button">
               {{ sample.label }}
             </button>
             {% endfor %}
           </div>
         </div>
+        <!-- Local file upload button -->
+        <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('fileUploadInput').click()" title="بارگذاری فایل از سیستم">
+          📁 بارگذاری فایل
+        </button>
+        <!-- GitHub import button -->
+        <button type="button" class="btn btn-sm btn-secondary" onclick="openGithubModal()" title="دریافت فایل از مخزن گیت‌هاب">
+          🐙 گیت‌هاب
+        </button>
+        <!-- Clear code button -->
+        <button type="button" class="btn btn-sm btn-clear" onclick="clearEditor()" title="پاکسازی کامل کد">
+          🗑️ پاکسازی
+        </button>
       </div>
     </div>
 
@@ -129,11 +144,16 @@
         <div id="issuesList" class="issues-list"></div>
       </div>
 
-      <!-- AI Fix section -->
+      <!-- Fix Actions section -->
       <div class="ai-section">
-        <button class="btn btn-ai" onclick="runAiFix()" id="aiFixBtn">
-          ✨ اصلاح هوشمند با هوش مصنوعی
-        </button>
+        <div class="fix-actions-container" id="fixActionsContainer" style="display: none;">
+          <button class="btn btn-ai" onclick="runFix('ai')" id="aiFixBtn" title="اصلاح آنلاین کد با مدل هوش مصنوعی Gemini">
+            ✨ اصلاح هوشمند آنلاین (Gemini AI)
+          </button>
+          <button class="btn btn-offline" onclick="runFix('offline')" id="offlineFixBtn" title="اصلاح فوری با الگوهای امنیتی بدون نیاز به اینترنت و API Key">
+            ⚡ اصلاح آفلاین (الگوی امن دمو)
+          </button>
+        </div>
         <div id="aiFixer" class="ai-output hidden">
           <div class="ai-output-header">
             <div style="display:flex;align-items:center;gap:0.6rem">
@@ -179,6 +199,28 @@
     <div class="modal-footer">
       <button class="btn btn-primary" onclick="saveSettings()">💾 ذخیره</button>
       <button class="btn btn-outline" onclick="closeSettings()">لغو</button>
+    </div>
+  </div>
+</div>
+
+<!-- GitHub Import Modal -->
+<div id="githubModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="githubTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="githubTitle">🐙 دریافت کد از گیت‌هاب</h3>
+      <button class="modal-close" onclick="closeGithubModal()" aria-label="بستن پنجره" type="button">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-desc">آدرس فایل موردنظر در گیت‌هاب (Blob یا Raw) را وارد کنید:</p>
+      <div class="form-group">
+        <label class="form-label" for="githubUrlInput">لینک فایل در GitHub</label>
+        <input type="url" id="githubUrlInput" class="form-input" style="direction:ltr; text-align:left;" placeholder="https://github.com/owner/repo/blob/main/app.py"/>
+      </div>
+      <p class="modal-tip">💡 هم لینک‌های استاندارد github.com/.../blob/... و هم raw.githubusercontent.com پشتیبانی می‌شوند.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="fetchFromGithub()" id="fetchGithubBtn" type="button">📥 دریافت و بارگذاری</button>
+      <button class="btn btn-outline" onclick="closeGithubModal()" type="button">لغو</button>
     </div>
   </div>
 </div>
@@ -262,7 +304,8 @@ function loadSample(key) {
   resetResults();
   document.getElementById('resultsArea').classList.add('hidden');
   document.getElementById('emptyState').classList.remove('hidden');
-  document.getElementById('aiFixBtn').style.display = 'none';
+  const fixActions = document.getElementById('fixActionsContainer');
+  if (fixActions) fixActions.style.display = 'none';
 }
 
 function toggleDropdown() {
@@ -276,6 +319,135 @@ function closeDropdown() {
 document.addEventListener('click', e => {
   if (!e.target.closest('.dropdown')) closeDropdown();
 });
+
+// ──────────────────────────────────────────────
+// File Upload & GitHub Import & Clear
+// ──────────────────────────────────────────────
+function handleFileUpload(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  if (file.size > 1024 * 1024) {
+    showToast('حجم فایل نباید بیش از ۱ مگابایت باشد', 'danger');
+    event.target.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const content = e.target.result;
+    editor.setValue(content);
+    editor.clearHistory();
+    editor.scrollTo(0, 0);
+    editor.refresh();
+
+    // Auto-detect language by file extension
+    const ext = file.name.split('.').pop().toLowerCase();
+    let lang = 'python';
+    if (ext === 'php') lang = 'php';
+    else if (ext === 'js' || ext === 'jsx' || ext === 'ts' || ext === 'mjs') lang = 'javascript';
+    else if (ext === 'py') lang = 'python';
+
+    document.getElementById('languageSelect').value = lang;
+    changeLanguage(lang);
+
+    // Reset results & state
+    currentScanResult = null;
+    resetResults();
+    document.getElementById('resultsArea').classList.add('hidden');
+    document.getElementById('emptyState').classList.remove('hidden');
+    const fixActions = document.getElementById('fixActionsContainer');
+    if (fixActions) fixActions.style.display = 'none';
+
+    showToast(`فایل ${file.name} با موفقیت بارگذاری شد ✅`, 'success');
+  };
+  reader.onerror = function() {
+    showToast('خطا در خواندن فایل از حافظه محلی', 'danger');
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function openGithubModal() {
+  document.getElementById('githubUrlInput').value = '';
+  document.getElementById('githubModal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('githubUrlInput').focus(), 50);
+}
+
+function closeGithubModal() {
+  document.getElementById('githubModal').classList.add('hidden');
+}
+
+async function fetchFromGithub() {
+  const url = document.getElementById('githubUrlInput').value.trim();
+  if (!url) {
+    showToast('لطفاً آدرس لینک فایل گیت‌هاب را وارد کنید', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('fetchGithubBtn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ در حال دریافت...';
+
+  try {
+    const resp = await fetch('/api/fetch-github', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ url })
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      throw new Error(data.error || 'خطا در دریافت فایل از گیت‌هاب');
+    }
+
+    editor.setValue(data.code);
+    editor.clearHistory();
+    editor.scrollTo(0, 0);
+    editor.refresh();
+
+    if (data.language) {
+      document.getElementById('languageSelect').value = data.language;
+      changeLanguage(data.language);
+    }
+
+    // Reset results & state
+    currentScanResult = null;
+    resetResults();
+    document.getElementById('resultsArea').classList.add('hidden');
+    document.getElementById('emptyState').classList.remove('hidden');
+    const fixActions = document.getElementById('fixActionsContainer');
+    if (fixActions) fixActions.style.display = 'none';
+
+    closeGithubModal();
+    showToast(`فایل ${data.filename || ''} از گیت‌هاب بارگذاری شد ✅`, 'success');
+  } catch(err) {
+    showToast(err.message || 'خطا در دریافت فایل از گیت‌هاب', 'danger');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '📥 دریافت و بارگذاری';
+  }
+}
+
+function clearEditor() {
+  const currentVal = editor.getValue().trim();
+  if (!currentVal && (!currentScanResult || currentScanResult.issues_count === 0)) {
+    showToast('ویرایشگر هم‌اکنون خالی است', 'info');
+    return;
+  }
+  editor.setValue('');
+  editor.clearHistory();
+  editor.scrollTo(0, 0);
+  editor.refresh();
+
+  currentScanResult = null;
+  resetResults();
+  document.getElementById('resultsArea').classList.add('hidden');
+  document.getElementById('emptyState').classList.remove('hidden');
+  const fixActions = document.getElementById('fixActionsContainer');
+  if (fixActions) fixActions.style.display = 'none';
+
+  showToast('کد و نتایج با موفقیت پاکسازی شدند 🗑️', 'info');
+}
 
 // ──────────────────────────────────────────────
 // Safe text helper (prevent XSS)
@@ -374,8 +546,11 @@ function displayResults(data) {
     `).join('');
   }
 
-  // Show AI fix button only if there are issues
-  document.getElementById('aiFixBtn').style.display = data.issues.length > 0 ? 'flex' : 'none';
+  // Show fix action buttons only if there are issues
+  const fixActions = document.getElementById('fixActionsContainer');
+  if (fixActions) {
+    fixActions.style.display = data.issues.length > 0 ? 'flex' : 'none';
+  }
 }
 
 function severityLabel(s) {
@@ -421,16 +596,25 @@ function drawGauge(score) {
 }
 
 // ──────────────────────────────────────────────
-// AI Fix
+// Fix Code: Online AI (Gemini) vs Offline Template
 // ──────────────────────────────────────────────
-async function runAiFix() {
+async function runFix(mode = 'ai') {
   if (!currentScanResult) return;
   const code = editor.getValue().trim();
   const language = document.getElementById('languageSelect').value;
 
   const aiBtn = document.getElementById('aiFixBtn');
-  aiBtn.disabled = true;
-  aiBtn.innerHTML = '⏳ در حال نگارش کد امن و اصلاح خودکار...';
+  const offlineBtn = document.getElementById('offlineFixBtn');
+
+  if (mode === 'ai') {
+    aiBtn.disabled = true;
+    offlineBtn.disabled = true;
+    aiBtn.innerHTML = '⏳ در حال استعلام از Gemini AI...';
+  } else {
+    aiBtn.disabled = true;
+    offlineBtn.disabled = true;
+    offlineBtn.innerHTML = '⚡ در حال آماده‌سازی الگوی امن دمو...';
+  }
 
   try {
     const resp = await fetch('/api/ai-fix', {
@@ -440,18 +624,27 @@ async function runAiFix() {
         code,
         language,
         issues: currentScanResult.issues,
-        api_key: geminiApiKey
+        api_key: geminiApiKey,
+        mode: mode
       })
     });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
+    if (!resp.ok) {
+      if (resp.status === 400 && mode === 'ai') {
+        openSettings();
+        throw new Error(data.error || 'لطفاً ابتدا کلید Gemini API را وارد کنید یا از اصلاح آفلاین استفاده نمایید.');
+      }
+      throw new Error(data.error || 'خطا در اصلاح کد');
+    }
     displayAiFix(data);
-    showToast('کد با موفقیت اصلاح و امن‌سازی شد! ✅', 'success');
+    showToast(mode === 'ai' ? 'کد با موفقیت توسط هوش مصنوعی اصلاح شد! ✨' : 'الگوی امن دمو با موفقیت بارگذاری شد! ⚡', 'success');
   } catch(e) {
-    showToast('خطا در اتصال به سرویس هوش مصنوعی', 'danger');
+    showToast(e.message || 'خطا در انجام اصلاحیه', 'danger');
   } finally {
     aiBtn.disabled = false;
-    aiBtn.innerHTML = '✨ اصلاح مجدد با هوش مصنوعی';
+    offlineBtn.disabled = false;
+    aiBtn.innerHTML = '✨ اصلاح آنلاین (Gemini AI)';
+    offlineBtn.innerHTML = '⚡ اصلاح آفلاین (الگوی دمو)';
   }
 }
 
@@ -574,10 +767,14 @@ function saveSettings() {
 document.getElementById('settingsModal').addEventListener('click', function(e) {
   if (e.target === this) closeSettings();
 });
+document.getElementById('githubModal').addEventListener('click', function(e) {
+  if (e.target === this) closeGithubModal();
+});
 
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeSettings();
+    closeGithubModal();
     closeDropdown();
   }
 });
@@ -599,6 +796,8 @@ function setLoading(show, text = '') {
 
 function resetResults() {
   document.getElementById('aiFixer').classList.add('hidden');
+  const fixActions = document.getElementById('fixActionsContainer');
+  if (fixActions) fixActions.style.display = 'none';
   if (fixedEditor) { fixedEditor.toTextArea(); fixedEditor = null; }
   const canvas = document.getElementById('scoreGauge');
   if (canvas) {

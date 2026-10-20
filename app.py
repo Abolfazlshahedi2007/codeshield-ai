@@ -393,22 +393,86 @@ def api_ai_fix():
     if not isinstance(issues, list):
         issues = []
 
-    api_key = session.get("gemini_api_key", "") or os.environ.get("GEMINI_API_KEY", "")
+    mode = data.get("mode", "ai")
+    raw_key = data.get("api_key")
+    api_key = (raw_key.strip() if isinstance(raw_key, str) and raw_key.strip() else None) or session.get("gemini_api_key", "") or os.environ.get("GEMINI_API_KEY", "")
+    if api_key and not session.get("gemini_api_key"):
+        session["gemini_api_key"] = api_key
 
-    # Try Gemini API
-    if api_key:
-        try:
-            result = call_gemini_api(code, language, issues, api_key)
-            if result:
-                return jsonify(result)
-        except Exception as e:
-            app.logger.warning(f"Gemini API invocation error: {e}. Falling back to offline mode.")
+    # Mode 1: Explicit Offline Fix (No API key needed)
+    if mode == "offline":
+        fallback = get_offline_fix(code, language, issues)
+        fallback["source"] = "offline"
+        fallback["source_label"] = "⚡ موتور امن‌ساز آفلاین (الگوی امن دمو)"
+        return jsonify(fallback)
 
-    # Offline fallback
-    fallback = get_offline_fix(code, language, issues)
-    fallback["source"] = "offline"
-    fallback["source_label"] = "🟢 موتور امن‌ساز داخلی (حالت آفلاین دمو)"
-    return jsonify(fallback)
+    # Mode 2: AI-Powered Fix via Gemini
+    if not api_key:
+        return jsonify({
+            "error": "کلید Gemini API وارد نشده است. لطفاً از آیکن تنظیمات ⚙️ در بالای صفحه کلید خود را وارد کنید، یا از دکمه «⚡ اصلاح آفلاین» استفاده نمایید."
+        }), 400
+
+    try:
+        result = call_gemini_api(code, language, issues, api_key)
+        if result:
+            return jsonify(result)
+        return jsonify({
+            "error": "پاسخی از هوش مصنوعی دریافت نشد. لطفاً اعتبار کلید API یا اتصال اینترنت را بررسی کنید."
+        }), 502
+    except Exception as e:
+        app.logger.warning(f"Gemini API invocation error: {e}")
+        return jsonify({"error": f"خطا در ارتباط با هوش مصنوعی: {str(e)}"}), 500
+
+
+@app.route("/api/fetch-github", methods=["POST"])
+@login_required
+def api_fetch_github():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "داده نامعتبر است"}), 400
+
+    raw_url = data.get("url", "").strip()
+    if not raw_url:
+        return jsonify({"error": "لطفاً آدرس فایل گیت‌هاب را وارد کنید"}), 400
+
+    target_url = raw_url
+    # Support GitHub web URLs: https://github.com/owner/repo/blob/main/file.ext
+    if "github.com" in raw_url and "/blob/" in raw_url:
+        target_url = raw_url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
+
+    if not (target_url.startswith("http://") or target_url.startswith("https://")):
+        return jsonify({"error": "آدرس لینک باید با http یا https آغاز شود"}), 400
+
+    try:
+        resp = http_requests.get(target_url, timeout=12, headers={"User-Agent": "CodeShield-AI-Fetcher"})
+        if resp.status_code == 404:
+            return jsonify({"error": "فایل در گیت‌هاب یافت نشد (404). لطفاً از صحت آدرس و پابلیک بودن مخزن اطمینان حاصل کنید."}), 404
+        if resp.status_code != 200:
+            return jsonify({"error": f"خطا در دریافت از گیت‌هاب (کد وضعیت: {resp.status_code})"}), 400
+
+        content = resp.text
+        if len(content) > 300_000:
+            return jsonify({"error": "حجم فایل بیش از ۳۰۰ کیلوبایت است."}), 400
+
+        # Auto-detect language
+        clean_path = target_url.split("?")[0].lower()
+        lang = "python"
+        if clean_path.endswith(".php"):
+            lang = "php"
+        elif clean_path.endswith((".js", ".jsx", ".ts", ".tsx", ".mjs")):
+            lang = "javascript"
+        elif clean_path.endswith(".py"):
+            lang = "python"
+
+        filename = clean_path.split("/")[-1] or "file"
+
+        return jsonify({
+            "code": content,
+            "language": lang,
+            "filename": filename
+        })
+    except Exception as e:
+        return jsonify({"error": f"خطا در برقراری ارتباط با گیت‌هاب: {str(e)}"}), 500
 
 
 def call_gemini_api(code: str, language: str, issues: list, api_key: str) -> dict | None:
