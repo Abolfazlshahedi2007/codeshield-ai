@@ -468,7 +468,16 @@ a:hover { text-decoration: underline; }
 }
 .ai-output { margin-top: 1rem; animation: fadeIn 0.4s ease; }
 .ai-output-header { align-items: center; display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
-.fixed-code-wrapper { border: 1px solid var(--accent-green); border-radius: var(--radius-sm); overflow: hidden; }
+.fixed-code-wrapper {
+  border: 1px solid var(--accent-green);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  min-height: 350px;
+}
+.fixed-code-wrapper .CodeMirror {
+  height: 350px !important;
+  min-height: 350px !important;
+}
 .explanation-box {
   background: var(--bg-secondary); border: 1px solid var(--border);
   border-radius: var(--radius-sm); margin-top: 0.75rem; padding: 1rem;

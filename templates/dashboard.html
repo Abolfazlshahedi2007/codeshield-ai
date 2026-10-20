@@ -430,8 +430,7 @@ async function runAiFix() {
 
   const aiBtn = document.getElementById('aiFixBtn');
   aiBtn.disabled = true;
-  aiBtn.style.opacity = '0.6';
-  setLoading(true, 'در حال اصلاح هوشمند با هوش مصنوعی...');
+  aiBtn.innerHTML = '⏳ در حال نگارش کد امن و اصلاح خودکار...';
 
   try {
     const resp = await fetch('/api/ai-fix', {
@@ -446,15 +445,13 @@ async function runAiFix() {
     });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
-    setLoading(false);
     displayAiFix(data);
     showToast('کد با موفقیت اصلاح و امن‌سازی شد! ✅', 'success');
   } catch(e) {
-    setLoading(false);
     showToast('خطا در اتصال به سرویس هوش مصنوعی', 'danger');
   } finally {
     aiBtn.disabled = false;
-    aiBtn.style.opacity = '1';
+    aiBtn.innerHTML = '✨ اصلاح مجدد با هوش مصنوعی';
   }
 }
 
@@ -465,25 +462,29 @@ function displayAiFix(data) {
   const sourceBadge = document.getElementById('aiSourceBadge');
   if (sourceBadge) {
     sourceBadge.textContent = data.source_label || (data.source === 'gemini' ? '✨ هوش مصنوعی Gemini 2.0' : '🟢 موتور داخلی (آفلاین دمو)');
-    sourceBadge.className = data.source === 'gemini' ? 'badge-ai-online' : 'badge-ai-offline';
+    sourceBadge.className = data.source === 'gemini' ? 'badge-source badge-ai-online' : 'badge-source badge-ai-offline';
   }
 
   // Fixed code editor
   const fixedTextarea = document.getElementById('fixedCodeEditor');
-  fixedTextarea.value = data.fixed_code || '';
-  if (fixedEditor) fixedEditor.toTextArea();
-
   const langVal = document.getElementById('languageSelect').value;
   const modeMap = { python: 'python', php: 'application/x-httpd-php', javascript: 'javascript' };
-  fixedEditor = CodeMirror.fromTextArea(fixedTextarea, {
-    mode: modeMap[langVal] || 'python',
-    theme: document.body.classList.contains('dark-mode') ? 'dracula' : 'eclipse',
-    lineNumbers: true,
-    lineWrapping: true,
-    readOnly: true,
-    direction: 'ltr',
-  });
-  fixedEditor.setSize('100%', '320px');
+
+  if (!fixedEditor) {
+    fixedEditor = CodeMirror.fromTextArea(fixedTextarea, {
+      mode: modeMap[langVal] || 'python',
+      theme: document.body.classList.contains('dark-mode') ? 'dracula' : 'eclipse',
+      lineNumbers: true,
+      lineWrapping: true,
+      readOnly: true,
+      direction: 'ltr',
+    });
+  } else {
+    fixedEditor.setOption('mode', modeMap[langVal] || 'python');
+  }
+
+  fixedEditor.setValue(data.fixed_code || '');
+  fixedEditor.setSize('100%', '350px');
   setTimeout(() => fixedEditor.refresh(), 50);
 
   // Explanation — sanitized with DOMPurify
@@ -499,7 +500,11 @@ function displayAiFix(data) {
   }
   document.getElementById('explanationContent').innerHTML = rendered;
 
-  fixSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Scroll left panel directly to the fixed code
+  const leftPanel = document.querySelector('.panel-left');
+  if (leftPanel) {
+    leftPanel.scrollTo({ top: fixSection.offsetTop - 15, behavior: 'smooth' });
+  }
 }
 
 function copyFixedCode() {
