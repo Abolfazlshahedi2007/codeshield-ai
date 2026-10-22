@@ -1,53 +1,73 @@
 {% extends "base.html" %}
-{% block title %}تاریخچه اسکن‌ها — سپر کد{% endblock %}
+{% block title %}سوابق اسکن‌های امنیتی — سپر کد{% endblock %}
 {% block body %}
+<!-- نوار هدر شیشه‌ای کریستالی -->
 <nav class="navbar">
   <div class="navbar-brand">
-    <span class="navbar-logo">🛡️</span>
-    <span class="navbar-title">سپر کد</span>
+    <span class="navbar-logo brand-shield-orb" aria-hidden="true">🛡️</span>
+    <div>
+      <span class="navbar-title">سپر کد</span>
+      <span class="navbar-subtitle">CodeShield AI • امنیت کدهای منبع</span>
+    </div>
   </div>
   <div class="navbar-actions">
-    <button class="btn-icon" onclick="toggleTheme()">🌙</button>
-    <a href="/dashboard" class="btn btn-sm btn-primary">↩ بازگشت به داشبورد</a>
+    <div class="glass-telemetry-chip" style="margin-left: 0.5rem;">
+      <span class="pulse-radar-dot" aria-hidden="true"></span>
+      <span class="navbar-user">کاربر فعال: <strong>{{ current_user.username }}</strong></span>
+    </div>
+    <button class="btn-icon" onclick="toggleTheme()" title="تغییر تم (تیره / روشن)" aria-label="تغییر تم">🌙</button>
+    <a href="/dashboard" class="btn btn-sm btn-primary">↩ بازگشت به کنسول</a>
     <a href="/logout" class="btn btn-sm btn-outline">خروج</a>
   </div>
 </nav>
 
-<div class="history-wrapper">
-  <div class="history-header">
-    <h1 class="history-title">📋 تاریخچه اسکن‌ها</h1>
-    <p class="history-subtitle">{{ current_user.username }} — {{ scans|length }} اسکن انجام شده</p>
+<main class="history-wrapper">
+  <!-- سربرگ شیشه‌ای سوابق -->
+  <div class="history-header-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+      <div>
+        <h1 class="history-title">📋 سوابق اسکن‌های امنیتی</h1>
+        <p class="history-subtitle">آرشیو جامع تحلیل‌ها، ممیزی‌ها و امتیازات امنیتی سورس‌کد</p>
+      </div>
+      <div class="glass-telemetry-chip">
+        <span>مجموع اسکن‌ها: <strong style="color:#00f5ff;">{{ scans|length }}</strong> مورد</span>
+      </div>
+    </div>
   </div>
 
   {% if scans %}
+  <!-- جدول شیشه‌ای کریستالی سوابق اسکن -->
   <div class="history-table-wrapper">
+    <div class="glass-glare-effect" aria-hidden="true"></div>
     <table class="history-table">
       <thead>
         <tr>
-          <th>#</th>
-          <th>زبان</th>
-          <th>امتیاز</th>
+          <th>ردیف</th>
+          <th>زبان کد</th>
+          <th>امتیاز امنیتی</th>
           <th>آسیب‌پذیری‌ها</th>
-          <th>قطعه کد</th>
-          <th>زمان</th>
+          <th>پیش‌نمایش سورس‌کد</th>
+          <th>تاریخ و زمان اسکن</th>
         </tr>
       </thead>
       <tbody>
         {% for scan in scans %}
         <tr class="history-row">
-          <td>{{ loop.index }}</td>
+          <td style="font-family:var(--font-mono); font-weight:700; color:#94a3b8;">{{ loop.index }}</td>
           <td>
             <span class="lang-badge lang-{{ scan.language }}">
-              {{ {'python':'🐍 Python','php':'🐘 PHP','javascript':'⚡ JS'}.get(scan.language, scan.language) }}
+              {{ {'python':'🐍 پایتون (Python)','php':'🐘 پی‌اچ‌پی (PHP)','javascript':'⚡ جاوااسکریپت (JS)'}.get(scan.language, scan.language) }}
             </span>
           </td>
           <td>
             <span class="score-pill {% if scan.score >= 80 %}score-green{% elif scan.score >= 50 %}score-yellow{% else %}score-red{% endif %}">
-              {{ scan.score }}
+              {{ scan.score }} / ۱۰۰
             </span>
           </td>
           <td>
-            <span class="issue-count-badge">{{ scan.issues_count }}</span>
+            <span class="issue-count-badge {% if scan.issues_count == 0 %}count-zero{% else %}count-danger{% endif %}">
+              {{ scan.issues_count }} مورد
+            </span>
           </td>
           <td>
             <code class="code-snippet-preview ltr-text" title="{{ scan.code_snippet }}">
@@ -63,21 +83,24 @@
     </table>
   </div>
   {% else %}
-  <div class="empty-state" style="margin-top:4rem">
-    <div class="empty-icon">📂</div>
-    <h3>هنوز اسکنی انجام نشده</h3>
-    <p>به داشبورد بروید و اولین اسکن امنیتی خود را انجام دهید!</p>
-    <a href="/dashboard" class="btn btn-primary" style="margin-top:1rem">🔍 شروع اسکن</a>
+  <!-- حالت خالی زیبا با شیشه کریستالی -->
+  <div class="empty-state history-empty-card" style="margin-top:2.5rem;">
+    <div class="empty-icon" style="font-size:3.5rem;">🛡️</div>
+    <h3>هیچ پرونده اسکنی ثبت نشده است</h3>
+    <p>شما تا کنون اسکنی در این حساب کاربری انجام نداده‌اید. به کنسول بازگردید و اولین بررسی امنیتی خود را اجرا کنید.</p>
+    <a href="/dashboard" class="btn btn-primary" style="margin-top:1.25rem;">
+      🔍 بازگشت به کنسول و شروع اسکن
+    </a>
   </div>
   {% endif %}
-</div>
+</main>
 
 <script>
-document.querySelectorAll('.timestamp[data-utc]').forEach(el => {
-  const utc = el.getAttribute('data-utc');
+document.querySelectorAll('.timestamp[data-utc]').forEach(function(el) {
+  var utc = el.getAttribute('data-utc');
   if (!utc) return;
   try {
-    const d = new Date(utc);
+    var d = new Date(utc);
     el.textContent = new Intl.DateTimeFormat('fa-IR', {
       year: 'numeric', month: '2-digit', day: '2-digit',
       hour: '2-digit', minute: '2-digit'

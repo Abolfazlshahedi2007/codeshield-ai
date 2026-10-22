@@ -1,20 +1,25 @@
 {% extends "base.html" %}
-{% block title %}ورود — سپر کد{% endblock %}
+{% block title %}ورود به کنسول امنیتی — سپر کد{% endblock %}
 {% block body %}
 <div class="auth-wrapper">
-  <!-- Animated background particles -->
-  <div class="particles" id="particles"></div>
+  <!-- کنترل تغییر تم در صفحه ورود -->
+  <div style="position: absolute; top: 1.5rem; left: 1.5rem; z-index: 100;">
+    <button class="btn-icon" onclick="toggleTheme()" title="تغییر تم (تیره / روشن)" aria-label="تغییر تم">🌙</button>
+  </div>
 
-  <div class="auth-card fade-in">
-    <!-- Logo -->
+  <div class="auth-card fade-in tilt-target">
+    <!-- بازتاب نوری کریستالی روی شیشه -->
+    <div class="glass-glare-effect" aria-hidden="true"></div>
+
+    <!-- نشان و عنوان سامانه -->
     <div class="auth-logo">
-      <div class="shield-icon">🛡️</div>
+      <div class="shield-icon brand-shield-orb" aria-hidden="true">🛡️</div>
       <h1 class="auth-title">سپر کد</h1>
-      <p class="auth-subtitle">سامانه هوشمند تحلیل امنیت کد</p>
-      <p class="auth-subtitle-en">CodeShield AI</p>
+      <p class="auth-subtitle">سامانه هوشمند تحلیل و اصلاح امنیت کد</p>
+      <span class="auth-badge-crypto">CodeShield AI • امنیت کوانتومی</span>
     </div>
 
-    <!-- Flash messages -->
+    <!-- پیام‌های سیستمی و اعتبارسنجی -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -23,72 +28,46 @@
       {% endif %}
     {% endwith %}
 
-    <!-- Login form -->
+    <!-- فرم ورود اصلی -->
     <form method="POST" action="/login" class="auth-form">
       <input type="hidden" name="action" value="login"/>
+      
       <div class="form-group">
-        <label class="form-label" for="login-username">نام کاربری</label>
+        <label class="form-label" for="login-username">
+          <span>👤</span> نام کاربری
+        </label>
         <input type="text" id="login-username" name="username" class="form-input" 
                dir="ltr" placeholder="نام کاربری خود را وارد کنید" 
                autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus/>
       </div>
+
       <div class="form-group">
-        <label class="form-label" for="login-password">رمز عبور</label>
+        <label class="form-label" for="login-password">
+          <span>🔑</span> رمز عبور
+        </label>
         <input type="password" id="login-password" name="password" class="form-input" 
                dir="ltr" placeholder="رمز عبور خود را وارد کنید" 
                autocomplete="current-password" required/>
       </div>
-      <button type="submit" class="btn btn-primary w-full">
-        🔐 ورود به سامانه
+
+      <button type="submit" class="btn btn-primary w-full" id="submitLoginBtn">
+        🔐 ورود به کنسول امنیتی
       </button>
     </form>
 
-    <div class="divider"><span>یا</span></div>
+    <div class="divider"><span>یا دسترسی فوری</span></div>
 
-    <!-- Demo judge login -->
+    <!-- ورود یک‌کلیکی داور و مهمان -->
     <form method="POST" action="/login">
-      <button type="submit" name="action" value="demo" class="btn btn-demo w-full">
-        ⚡ ورود به عنوان داور / مهمان (یک‌کلیکی)
+      <button type="submit" name="action" value="demo" class="btn btn-demo w-full" id="demoLoginBtn">
+        ⚡ ورود سریع داور و مهمان (بدون نیاز به ثبت‌نام)
       </button>
     </form>
 
     <p class="auth-footer">
-      حساب کاربری ندارید؟
-      <a href="/register" class="auth-link">ثبت‌نام کنید</a>
+      هنوز حساب کاربری ایجاد نکرده‌اید؟
+      <a href="/register" class="auth-link">ایجاد حساب جدید</a>
     </p>
   </div>
 </div>
-
-<script>
-// Particle animation
-const canvas = document.createElement('canvas');
-canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.3';
-document.getElementById('particles').appendChild(canvas);
-const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-const particles = Array.from({length: 60}, () => ({
-  x: Math.random() * canvas.width,
-  y: Math.random() * canvas.height,
-  r: Math.random() * 2 + 0.5,
-  vx: (Math.random() - 0.5) * 0.5,
-  vy: (Math.random() - 0.5) * 0.5,
-  color: Math.random() > 0.5 ? '#00ff88' : '#ff4444'
-}));
-function animateParticles() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  particles.forEach(p => {
-    p.x += p.vx; p.y += p.vy;
-    if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-    if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-    ctx.fillStyle = p.color;
-    ctx.fill();
-  });
-  requestAnimationFrame(animateParticles);
-}
-animateParticles();
-window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
-</script>
 {% endblock %}

@@ -28,15 +28,20 @@
 <!-- Navbar -->
 <nav class="navbar">
   <div class="navbar-brand">
-    <span class="navbar-logo">🛡️</span>
-    <span class="navbar-title">سپر کد</span>
-    <span class="navbar-subtitle">CodeShield AI</span>
+    <span class="navbar-logo brand-shield-orb" aria-hidden="true">🛡️</span>
+    <div>
+      <span class="navbar-title">سپر کد</span>
+      <span class="navbar-subtitle">CodeShield AI • کنسول سه‌بعدی</span>
+    </div>
   </div>
   <div class="navbar-actions">
-    <button class="btn-icon" onclick="toggleTheme()" title="تغییر تم">🌙</button>
-    <button class="btn-icon" onclick="openSettings()" title="تنظیمات API">⚙️</button>
-    <a href="/history" class="btn-icon" title="تاریخچه اسکن‌ها">📋</a>
-    <span class="navbar-user">👤 {{ current_user.username }}</span>
+    <div class="glass-telemetry-chip">
+      <span class="pulse-radar-dot" aria-hidden="true"></span>
+      <span class="navbar-user">کاربر فعال: <strong>{{ current_user.username }}</strong></span>
+    </div>
+    <button class="btn-icon" onclick="toggleTheme()" title="تغییر تم (تیره / روشن)" aria-label="تغییر تم">🌙</button>
+    <button class="btn-icon" onclick="openSettings()" title="تنظیمات Gemini API" aria-label="تنظیمات API">⚙️</button>
+    <a href="/history" class="btn-icon" title="سوابق اسکن‌ها" aria-label="سوابق اسکن‌ها">📋</a>
     <a href="/logout" class="btn btn-sm btn-outline">خروج</a>
   </div>
 </nav>
@@ -97,7 +102,8 @@
     </div>
 
     <!-- CodeMirror Editor -->
-    <div class="editor-wrapper">
+    <div class="editor-wrapper" style="position:relative;">
+      <div class="spatial-laser-ray" id="spatialLaserRay" aria-hidden="true"></div>
       <textarea id="codeEditor" placeholder="کد خود را اینجا وارد کنید..."></textarea>
     </div>
 
@@ -123,9 +129,12 @@
 
     <!-- Results area (hidden initially) -->
     <div id="resultsArea" class="results-area hidden">
-      <!-- Score gauge -->
+      <!-- Score gauge with 3D Arc Reactor -->
       <div class="score-section">
         <div class="score-gauge-wrapper">
+          <div class="gyro-ring-alpha" aria-hidden="true"></div>
+          <div class="gyro-ring-beta" aria-hidden="true"></div>
+          <div class="gyro-ring-gamma" aria-hidden="true"></div>
           <canvas id="scoreGauge" width="200" height="200"></canvas>
           <div class="score-center">
             <span id="scoreValue" class="score-number">0</span>
@@ -471,6 +480,9 @@ async function runScan() {
   scanBtn.disabled = true;
   scanBtn.style.opacity = '0.6';
 
+  const laserRay = document.getElementById('spatialLaserRay');
+  if (laserRay) laserRay.classList.add('scanning');
+
   setLoading(true, 'در حال اسکن کد...');
   resetResults();
 
@@ -492,6 +504,7 @@ async function runScan() {
     setLoading(false);
     showToast('خطا: ' + (e.message || 'ارتباط با سرور برقرار نشد'), 'danger');
   } finally {
+    if (laserRay) laserRay.classList.remove('scanning');
     scanBtn.disabled = false;
     scanBtn.style.opacity = '1';
   }

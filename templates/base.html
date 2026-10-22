@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{% block title %}سپر کد — CodeShield AI{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
   <script>
     (function() {
@@ -18,8 +19,74 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body class="dark-mode" id="body">
+  <!-- پس‌زمینه کهکشان نوری کوانتومی و شبکه فضایی سه‌بعدی -->
+  <div class="cosmic-backdrop" aria-hidden="true"></div>
+  <div class="cosmic-grid-mesh" aria-hidden="true"></div>
+  <div class="cursor-ambient-light" id="cursorAmbientLight" aria-hidden="true"></div>
+
   {% block body %}{% endblock %}
+
   <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+  
+  <!-- اسکریپت فیزیک سه‌بعدی و بازتاب نور کریستالی سراسری سامانه -->
+  <script>
+    (function() {
+      var targetX = 0, targetY = 0;
+      var currentX = 0, currentY = 0;
+      var mouseLight = document.getElementById('cursorAmbientLight');
+      var mediaReduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+      document.addEventListener('mousemove', function(e) {
+        if (mouseLight) {
+          mouseLight.style.left = e.clientX + 'px';
+          mouseLight.style.top = e.clientY + 'px';
+        }
+
+        if (mediaReduced.matches) return;
+
+        targetX = ((window.innerWidth / 2 - e.pageX) / window.innerWidth) * 14;
+        targetY = -((window.innerHeight / 2 - e.pageY) / window.innerHeight) * 14;
+
+        var cards = document.querySelectorAll('.tilt-target, .auth-card, .panel, .modal');
+        cards.forEach(function(card) {
+          var rect = card.getBoundingClientRect();
+          var glareX = ((e.clientX - rect.left) / rect.width) * 100;
+          var glareY = ((e.clientY - rect.top) / rect.height) * 100;
+          card.style.setProperty('--glare-x', glareX + '%');
+          card.style.setProperty('--glare-y', glareY + '%');
+        });
+      });
+
+      // موج انرژی ضربانی با کلیک روی شیشه
+      document.addEventListener('click', function(e) {
+        if (mediaReduced.matches) return;
+        var ripple = document.createElement('div');
+        ripple.className = 'glass-click-ripple';
+        ripple.style.left = e.clientX + 'px';
+        ripple.style.top = e.clientY + 'px';
+        document.body.appendChild(ripple);
+        setTimeout(function() {
+          if (ripple.parentNode) ripple.remove();
+        }, 800);
+      });
+
+      // حلقه رندر روان با تخفیف اینرسی (LERP) برای کارت‌های دارای تعامل سه‌بعدی
+      if (!mediaReduced.matches) {
+        function renderPhysicsLoop() {
+          currentX += (targetX - currentX) * 0.08;
+          currentY += (targetY - currentY) * 0.08;
+
+          var tiltCards = document.querySelectorAll('.tilt-target, .auth-card');
+          tiltCards.forEach(function(card) {
+            card.style.transform = 'perspective(1200px) rotateY(' + (-currentX) + 'deg) rotateX(' + currentY + 'deg)';
+          });
+
+          requestAnimationFrame(renderPhysicsLoop);
+        }
+        renderPhysicsLoop();
+      }
+    })();
+  </script>
   {% block extra_scripts %}{% endblock %}
 </body>
 </html>
