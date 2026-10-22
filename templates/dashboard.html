@@ -156,9 +156,10 @@
         </div>
         <div id="aiFixer" class="ai-output hidden">
           <div class="ai-output-header">
-            <div style="display:flex;align-items:center;gap:0.6rem">
+            <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap">
               <h3>✅ کد اصلاح‌شده</h3>
               <span id="aiSourceBadge" class="badge-source"></span>
+              <span id="aiVerifiedBadge" class="badge-source badge-ai-offline" style="display:none"></span>
             </div>
             <button class="btn btn-sm btn-outline" onclick="copyFixedCode()">📋 کپی کد</button>
           </div>
@@ -654,8 +655,18 @@ function displayAiFix(data) {
 
   const sourceBadge = document.getElementById('aiSourceBadge');
   if (sourceBadge) {
-    sourceBadge.textContent = data.source_label || (data.source === 'gemini' ? '✨ هوش مصنوعی Gemini 2.0' : '🟢 موتور داخلی (آفلاین دمو)');
+    sourceBadge.textContent = data.source_label || (data.source === 'gemini' ? '✨ هوش مصنوعی Gemini' : '🟢 موتور امن‌ساز دمو');
     sourceBadge.className = data.source === 'gemini' ? 'badge-source badge-ai-online' : 'badge-source badge-ai-offline';
+  }
+
+  const verifiedBadge = document.getElementById('aiVerifiedBadge');
+  if (verifiedBadge) {
+    if (typeof data.verified_score === 'number') {
+      verifiedBadge.textContent = `🛡️ امتیاز امنیتی تاییدشده: ${data.verified_score}/۱۰۰`;
+      verifiedBadge.style.display = 'inline-flex';
+    } else {
+      verifiedBadge.style.display = 'none';
+    }
   }
 
   // Fixed code editor
@@ -796,6 +807,8 @@ function setLoading(show, text = '') {
 
 function resetResults() {
   document.getElementById('aiFixer').classList.add('hidden');
+  const verifiedBadge = document.getElementById('aiVerifiedBadge');
+  if (verifiedBadge) verifiedBadge.style.display = 'none';
   const fixActions = document.getElementById('fixActionsContainer');
   if (fixActions) fixActions.style.display = 'none';
   if (fixedEditor) { fixedEditor.toTextArea(); fixedEditor = null; }

@@ -5,6 +5,7 @@ import json
 import os
 import re
 import secrets
+from urllib.parse import urlparse
 from datetime import datetime, timedelta
 import requests as http_requests
 
@@ -323,6 +324,7 @@ def history():
     scans = (
         Scan.query.filter_by(user_id=current_user.id)
         .order_by(Scan.timestamp.desc())
+        .limit(100)
         .all()
     )
     return render_template("history.html", scans=scans)
@@ -386,6 +388,9 @@ def api_ai_fix():
     if not isinstance(raw_code, str) or not raw_code.strip():
         return jsonify({"error": "کدی ارسال نشد"}), 400
 
+    if len(raw_code) > 100_000:
+        return jsonify({"error": "حجم کد ارسالی بیش از حد مجاز است (حداکثر ۱۰۰ کیلوبایت)"}), 400
+
     code = raw_code.strip()
     raw_lang = data.get("language", "python")
     language = raw_lang.lower().strip() if isinstance(raw_lang, str) else "python"
@@ -404,6 +409,10 @@ def api_ai_fix():
         fallback = get_offline_fix(code, language, issues)
         fallback["source"] = "offline"
         fallback["source_label"] = "⚡ موتور امن‌ساز آفلاین (الگوی امن دمو)"
+        # Automated security verification
+        verification = scan_code(fallback.get("fixed_code", ""), language)
+        fallback["verified_score"] = verification.get("score", 100)
+        fallback["verified_issues_count"] = verification.get("issues_count", 0)
         return jsonify(fallback)
 
     # Mode 2: AI-Powered Fix via Gemini
@@ -415,6 +424,10 @@ def api_ai_fix():
     try:
         result = call_gemini_api(code, language, issues, api_key)
         if result:
+            # Automated security verification
+            verification = scan_code(result.get("fixed_code", ""), language)
+            result["verified_score"] = verification.get("score", 100)
+            result["verified_issues_count"] = verification.get("issues_count", 0)
             return jsonify(result)
         return jsonify({
             "error": "پاسخی از هوش مصنوعی دریافت نشد. لطفاً اعتبار کلید API یا اتصال اینترنت را بررسی کنید."
@@ -440,8 +453,15 @@ def api_fetch_github():
     if "github.com" in raw_url and "/blob/" in raw_url:
         target_url = raw_url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
 
-    if not (target_url.startswith("http://") or target_url.startswith("https://")):
+    # Strict SSRF protection: only allow official GitHub hostnames over HTTPS/HTTP
+    parsed = urlparse(target_url)
+    if parsed.scheme not in ("http", "https"):
         return jsonify({"error": "آدرس لینک باید با http یا https آغاز شود"}), 400
+
+    hostname = (parsed.hostname or "").lower()
+    allowed_domains = {"github.com", "raw.githubusercontent.com", "gist.githubusercontent.com"}
+    if hostname not in allowed_domains:
+        return jsonify({"error": "فقط دریافت فایل از دامنه‌های رسمی گیت‌هاب مجاز است."}), 400
 
     try:
         resp = http_requests.get(target_url, timeout=12, headers={"User-Agent": "CodeShield-AI-Fetcher"})

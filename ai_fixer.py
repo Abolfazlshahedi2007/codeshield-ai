@@ -61,36 +61,42 @@ import hashlib
 import hmac
 import secrets
 from flask import Flask, request, session, abort
-import bcrypt
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 # ✅ کلید امنیتی از متغیر محیطی
 app.secret_key = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
 
-# ✅ استفاده از bcrypt برای هش امن رمز عبور
+# ✅ استفاده از استاندارد امن PBKDF2 با 600,000 تکرار
 def hash_password(password: str) -> str:
-    salt = bcrypt.gensalt(rounds=12)
-    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+    return generate_password_hash(password, method='pbkdf2:sha256:600000')
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return bcrypt.checkpw(
-        plain_password.encode('utf-8'),
-        hashed_password.encode('utf-8')
-    )
+    return check_password_hash(hashed_password, plain_password)
 
-# ✅ استفاده از ast.literal_eval به جای eval() خطرناک
+# ✅ ارزیابی امن عبارات با درخت نحوی AST بدون فراخوانی تابع eval
 import ast
+import operator
+
+SAFE_OPS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+}
+
+def _calc_node(node):
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+        return node.value
+    if isinstance(node, ast.BinOp) and type(node.op) in SAFE_OPS:
+        return SAFE_OPS[type(node.op)](_calc_node(node.left), _calc_node(node.right))
+    raise ValueError("عبارت نامعتبر است")
 
 def safe_evaluate(expression: str):
     \"\"\"ارزیابی امن عبارات ریاضی بدون اجرای کد دلخواه\"\"\"
     try:
         tree = ast.parse(expression, mode='eval')
-        # فقط عملیات ریاضی مجاز است
-        allowed_nodes = (ast.Expression, ast.BinOp, ast.UnaryOp, ast.Num, ast.Constant)
-        for node in ast.walk(tree):
-            if not isinstance(node, allowed_nodes):
-                raise ValueError("عبارت ناامن شناسایی شد")
-        return eval(compile(tree, '<string>', 'eval'))
+        return _calc_node(tree.body)
     except Exception:
         raise ValueError("عبارت نامعتبر است")
 
@@ -112,8 +118,8 @@ if __name__ == '__main__':
 - از کتابخانه `secrets` برای تولید کلید تصادفی امن استفاده شد.
 
 **۲. رمزنگاری قوی رمز عبور:**
-- به جای MD5/SHA1 از **bcrypt** با `rounds=12` استفاده شد.
-- bcrypt به صورت خودکار salt اضافه می‌کند و در برابر حملات brute-force مقاوم است.
+- به جای MD5/SHA1 از **الگوریتم استاندارد PBKDF2-SHA256** با ۶۰۰,۰۰۰ تکرار استفاده شد.
+- این متد به صورت خودکار Salt تصادفی تولید کرده و در برابر حملات brute-force کاملاً مقاوم است.
 
 **۳. رفع eval() خطرناک:**
 - به جای `eval()` از `ast.literal_eval` و تجزیه درخت نحوی (AST) استفاده شد.

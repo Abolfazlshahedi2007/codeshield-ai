@@ -18,6 +18,7 @@ RULES = [
                 r'mysqli.*query\s*\(.*\$_(GET|POST|REQUEST)',
                 r'".*\s*(SELECT|INSERT|UPDATE|DELETE)\s+.*"\s*\.\s*\$',
                 r"'.*\s*(SELECT|INSERT|UPDATE|DELETE)\s+.*'\s*\.\s*\$",
+                r'\bquery\s*\(\s*["\'].*?(SELECT|INSERT|UPDATE|DELETE).*?["\']\s*\.\s*\$',
             ],
             "python": [
                 r'execute\s*\(\s*[f"\'].*?(SELECT|INSERT|UPDATE|DELETE).*?%s.*?[f"\']\s*%',
@@ -25,6 +26,7 @@ RULES = [
                 r'execute\s*\(\s*f["\'].*?\{.*?\}.*?(SELECT|INSERT|UPDATE|DELETE)',
                 r'cursor\.execute\s*\(\s*["\'].*?\+',
                 r'(SELECT|INSERT|UPDATE|DELETE).*?["\']\s*%\s*\(',
+                r'(SELECT|INSERT|UPDATE|DELETE).*?["\']\s*\+\s*\w+',
             ],
             "javascript": [
                 r'query\s*\(\s*`.*?(SELECT|INSERT|UPDATE|DELETE).*?\$\{.*?\}',
@@ -42,9 +44,10 @@ RULES = [
         "description": "خروجی داده‌های کاربر بدون فیلتر یا escape کردن در صفحه نمایش داده می‌شود که منجر به حمله XSS می‌گردد.",
         "patterns": {
             "php": [
-                r'echo\s+\$_(GET|POST|REQUEST|COOKIE)',
-                r'print\s+\$_(GET|POST|REQUEST|COOKIE)',
+                r'(echo|print)\s*(\(|\s).*?\$_(GET|POST|REQUEST|COOKIE)',
+                r'(echo|print)\s*\(?\s*\$_(GET|POST|REQUEST|COOKIE)',
                 r'echo\s+.*\$_(GET|POST|REQUEST|COOKIE)',
+                r'<\?=\s*.*\$_(GET|POST|REQUEST|COOKIE)',
             ],
             "python": [
                 r'return\s+.*request\.(args|form|values|json)',
@@ -164,6 +167,13 @@ RULES = [
 
 SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 
+# Pre-compile regular expressions module-wide for high-throughput scanning
+COMPILED_RULES = {}
+for rule in RULES:
+    COMPILED_RULES[rule["id"]] = {}
+    for lang, patterns in rule["patterns"].items():
+        COMPILED_RULES[rule["id"]][lang] = [re.compile(p, re.IGNORECASE) for p in patterns]
+
 
 def scan_code(code: str, language: str) -> dict:
     """
@@ -197,13 +207,12 @@ def scan_code(code: str, language: str) -> dict:
     seen_rule_ids = set()
 
     for rule in RULES:
-        patterns = rule["patterns"].get(language, [])
-        if not patterns:
+        compiled_patterns = COMPILED_RULES.get(rule["id"], {}).get(language, [])
+        if not compiled_patterns:
             continue
 
         matched_lines = []
-        for pattern in patterns:
-            compiled = re.compile(pattern, re.IGNORECASE)
+        for compiled in compiled_patterns:
             for line_no, raw_line in enumerate(lines, start=1):
                 stripped = raw_line.strip()
                 # Skip comments to prevent false positives
