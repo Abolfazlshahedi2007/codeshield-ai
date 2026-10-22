@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>کنسول شیشه‌ای سه‌بعدی کریستالی — سپر کد (CodeShield AI)</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800;900&family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --font-fa: 'Vazirmatn', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --transition: 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    body {
+      font-family: var(--font-fa);
+      direction: rtl;
+      min-height: 100vh;
+      line-height: 1.6;
+      background: #030712;
+      color: #f8fafc;
+      overflow-x: hidden;
+      perspective: 1400px;
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       استاندارد WCAG 2.1 AA: ناوبری کیبورد و فوکوس با کنتراست بالا
+       ══════════════════════════════════════════════════════════ */
+    button:focus-visible, a:focus-visible, select:focus-visible {
+      outline: 2px solid #00f5ff !important;
+      outline-offset: 3px !important;
+      box-shadow: 0 0 15px #00f5ff !important;
+    }
+
+    /* استاندارد دسترس‌پذیری برای کاربران با حساسیت حرکتی */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      .real-glass-panel { transform: none !important; }
+      .gyro-ring-alpha, .gyro-ring-beta, .gyro-ring-gamma, .glass-radar-beam { animation: none !important; }
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       کهکشان نوری پس‌زمینه (که از پشت شیشه‌های شفاف دیده می‌شود)
+       ══════════════════════════════════════════════════════════ */
+    .cosmic-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+      background: 
+        radial-gradient(circle at 18% 22%, rgba(0, 245, 255, 0.28) 0%, transparent 45%),
+        radial-gradient(circle at 82% 78%, rgba(168, 85, 247, 0.32) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(255, 0, 128, 0.2) 0%, transparent 55%),
+        #030712;
+      background-attachment: fixed;
+    }
+    .cosmic-grid-mesh {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background-image: 
+        linear-gradient(rgba(0, 245, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 245, 255, 0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+      mask-image: radial-gradient(ellipse at center, black 40%, transparent 85%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 40%, transparent 85%);
+    }
+
+    /* هاله نور متحرک نشانگر ماوس */
+    .cursor-ambient-light {
+      position: fixed;
+      width: 450px;
+      height: 450px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0, 245, 255, 0.1) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 999;
+      transform: translate(-50%, -50%);
+    }
+
+    /* موج انرژی ضربانی هنگام کلیک روی شیشه */
+    .glass-click-ripple {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid #00f5ff;
+      box-shadow: 0 0 25px #00f5ff, inset 0 0 15px #00f5ff;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      animation: explodeRipple 0.8s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+    }
+    @keyframes explodeRipple {
+      0% { width: 10px; height: 10px; opacity: 1; border-width: 3px; }
+      100% { width: 300px; height: 300px; opacity: 0; border-width: 1px; }
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       هدر شیشه‌ای کریستالی کاملاً شفاف (Ultra Frosted Glass)
+       ══════════════════════════════════════════════════════════ */
+    .pure-glass-navbar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(35px) saturate(200%);
+      -webkit-backdrop-filter: blur(35px) saturate(200%);
+      border-bottom: 1.5px solid rgba(255, 255, 255, 0.18);
+      padding: 0.85rem 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+      box-shadow: 
+        0 15px 35px rgba(0, 0, 0, 0.6),
+        inset 0 1px 1px rgba(255, 255, 255, 0.25);
+    }
+    .brand-glass-box {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+    .brand-shield-orb {
+      font-size: 2rem;
+      filter: drop-shadow(0 0 18px #00f5ff);
+      animation: shieldFloat 3s infinite alternate;
+    }
+    @keyframes shieldFloat {
+      0% { transform: scale(1); filter: drop-shadow(0 0 12px #00f5ff); }
+      100% { transform: scale(1.1); filter: drop-shadow(0 0 28px #ff007f); }
+    }
+    .brand-title-main {
+      font-size: 1.35rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #ffffff 10%, #00f5ff 50%, #c084fc 80%, #ff007f);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.5px;
+      margin: 0;
+      line-height: 1.2;
+    }
+    .brand-subtitle-tech {
+      font-size: 0.72rem;
+      color: #cbd5e1;
+      font-family: var(--font-mono);
+      font-weight: 800;
+    }
+
+    /* نوار تله‌متری شیشه‌ای */
+    .glass-telemetry-chip {
+      display: flex;
+      align-items: center;
+      gap: 1.4rem;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      padding: 0.45rem 1.4rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.3);
+    }
+    .tele-stat-item {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      color: #e2e8f0;
+    }
+    .tele-stat-item strong { color: #00f5ff; font-family: var(--font-mono); font-weight: 800; }
+    .pulse-radar-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #00f5ff;
+      box-shadow: 0 0 12px #00f5ff;
+      animation: pulseRadarDot 1.5s infinite;
+    }
+    @keyframes pulseRadarDot {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.6); opacity: 0.4; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* تب‌های استایل شیشه‌ای */
+    .glass-switch-tabs {
+      display: flex;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.35rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      gap: 0.4rem;
+    }
+    .glass-mode-btn {
+      background: transparent;
+      border: none;
+      color: #cbd5e1;
+      padding: 0.5rem 1.25rem;
+      border-radius: 999px;
+      font-family: var(--font-fa);
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .glass-mode-btn:hover { color: #ffffff; }
+    .glass-mode-btn.active.tab-cyan {
+      background: linear-gradient(135deg, #00f5ff, #0284c7);
+      color: #000;
+      font-weight: 900;
+      box-shadow: 0 0 25px rgba(0, 245, 255, 0.7);
+    }
+    .glass-mode-btn.active.tab-amber {
+      background: linear-gradient(135deg, #ff0055, #f59e0b);
+      color: #ffffff;
+      box-shadow: 0 0 25px rgba(255, 0, 85, 0.7);
+    }
+    .glass-mode-btn.active.tab-emerald {
+      background: linear-gradient(135deg, #10b981, #d97706);
+      color: #ffffff;
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.7);
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       فضای کاری دو کارته با شیشه کریستالی شفاف سه‌بعدی
+       (Real Frosted Glassmorphism with 3D Depth & Glare)
+       ══════════════════════════════════════════════════════════ */
+    .workspace-glass-grid {
+      display: grid;
+      grid-template-columns: 1.18fr 0.82fr;
+      gap: 2.25rem;
+      max-width: 1800px;
+      margin: 0 auto;
+      padding: 1.75rem 2.5rem 8rem;
+    }
+
+    /* بدنه کارت‌های شیشه‌ای واقعی */
+    .real-glass-panel {
+      position: relative;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(35px) saturate(220%);
+      -webkit-backdrop-filter: blur(35px) saturate(220%);
+      border: 1.5px solid rgba(255, 255, 255, 0.22);
+      border-radius: 34px;
+      box-shadow: 
+        0 30px 80px rgba(0, 0, 0, 0.7),
+        inset 0 1.5px 2px rgba(255, 255, 255, 0.4),
+        inset 0 -1.5px 2px rgba(0, 0, 0, 0.4);
+      overflow: hidden;
+      transform-style: preserve-3d;
+      will-change: transform;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      transition: box-shadow 0.25s ease;
+    }
+
+    /* بازتاب نور هولوگرافیک روی سطح شیشه (Specular Glare) */
+    .glass-glare-effect {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(
+        circle 450px at var(--glare-x, 50%) var(--glare-y, 50%),
+        rgba(255, 255, 255, 0.2),
+        transparent 75%
+      );
+      pointer-events: none;
+      z-index: 50;
+    }
+
+    /* لایه‌بندی عمق داخلی سه‌بعدی */
+    .layer-depth-1 { transform: translateZ(20px); }
+    .layer-depth-2 { transform: translateZ(35px); }
+    .layer-depth-3 { transform: translateZ(55px); }
+
+    /* ══════════════════════════════════════════════════════════
+       رآکتور آرک کوانتومی سه‌بعدی شناور در عمق شیشه
+       ══════════════════════════════════════════════════════════ */
+    .quantum-reactor-vault {
+      position: relative;
+      width: 240px;
+      height: 240px;
+      margin: 0 auto;
+      perspective: 1100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: translateZ(45px);
+    }
+
+    /* امواج ضربانی شوک‌ویو شیشه‌ای */
+    .glass-shockwave-ring {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 2px solid #00f5ff;
+      animation: glassShockwavePulse 2.8s ease-out infinite;
+      pointer-events: none;
+    }
+    .glass-shockwave-ring:nth-child(2) { animation-delay: 1.4s; }
+    @keyframes glassShockwavePulse {
+      0% { transform: scale(0.5); opacity: 1; border-color: #00f5ff; }
+      50% { opacity: 0.6; border-color: #ff007f; }
+      100% { transform: scale(1.4); opacity: 0; }
+    }
+
+    /* حلقه‌های ژیروسکوپیک با چرخش سه‌بعدی */
+    .gyro-ring-alpha {
+      position: absolute;
+      width: 96%;
+      height: 96%;
+      border-radius: 50%;
+      border: 2px dashed rgba(0, 245, 255, 0.7);
+      animation: spinGyroAlpha 8s linear infinite;
+      transform: rotateX(70deg);
+    }
+    .gyro-ring-beta {
+      position: absolute;
+      width: 86%;
+      height: 86%;
+      border-radius: 50%;
+      border: 2.5px solid transparent;
+      border-top-color: #ff007f;
+      border-bottom-color: #00f5ff;
+      animation: spinGyroBeta 5.5s linear infinite;
+      transform: rotateY(70deg);
+    }
+    .gyro-ring-gamma {
+      position: absolute;
+      width: 74%;
+      height: 74%;
+      border-radius: 50%;
+      border: 2px dotted rgba(168, 85, 247, 0.8);
+      animation: spinGyroGamma 10s linear infinite reverse;
+    }
+    @keyframes spinGyroAlpha { 100% { transform: rotateX(70deg) rotateZ(360deg); } }
+    @keyframes spinGyroBeta { 100% { transform: rotateY(70deg) rotateZ(-360deg); } }
+    @keyframes spinGyroGamma { 100% { transform: rotate(360deg); } }
+
+    /* دیسک رادار ۳۶۰ درجه */
+    .glass-radar-disc {
+      position: absolute;
+      width: 70%;
+      height: 70%;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 245, 255, 0.4);
+      background: radial-gradient(circle, rgba(0, 245, 255, 0.15) 0%, transparent 80%);
+      overflow: hidden;
+    }
+    .glass-radar-beam {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 50%;
+      height: 50%;
+      background: linear-gradient(45deg, rgba(0, 245, 255, 0.7), transparent);
+      transform-origin: 0% 100%;
+      animation: radarBeamRotate 3s linear infinite;
+    }
+    @keyframes radarBeamRotate { 100% { transform: rotate(360deg); } }
+
+    /* کره مرکزی هسته رآکتور کریستالی */
+    .arc-reactor-core {
+      position: relative;
+      width: 105px;
+      height: 105px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #3b0764, #050811);
+      border: 2px solid rgba(255, 0, 128, 0.9);
+      box-shadow: 
+        0 0 50px rgba(255, 0, 128, 0.75),
+        inset 0 0 35px rgba(0, 245, 255, 0.65);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      animation: coreGlowPulse 2.5s ease-in-out infinite alternate;
+    }
+    @keyframes coreGlowPulse {
+      0% { box-shadow: 0 0 40px rgba(255, 0, 128, 0.5); }
+      100% { box-shadow: 0 0 70px rgba(255, 0, 128, 1), 0 0 45px rgba(0, 245, 255, 0.8); }
+    }
+    .score-glass-big {
+      font-size: 2.6rem;
+      font-weight: 900;
+      font-family: var(--font-mono);
+      color: #ff3366;
+      line-height: 1;
+      text-shadow: 0 0 30px rgba(255, 51, 102, 1);
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       ویرایشگر سورس با شیشه کریستالی مات و اسلایدر قبل و بعد
+       ══════════════════════════════════════════════════════════ */
+    .editor-glass-bar {
+      padding: 1.15rem 1.85rem;
+      background: rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+    }
+    .section-title-h2 {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: #f8fafc;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    /* تب مقایسه سریع */
+    .diff-toggle-glass {
+      display: flex;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.45);
+      padding: 0.35rem 0.55rem;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      gap: 0.45rem;
+    }
+    .btn-diff-item {
+      background: transparent;
+      border: none;
+      color: #cbd5e1;
+      padding: 0.45rem 1.15rem;
+      border-radius: 9px;
+      font-family: var(--font-fa);
+      font-size: 0.82rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .btn-diff-item.active.btn-vuln {
+      background: #dc2626;
+      color: #ffffff;
+      box-shadow: 0 0 20px rgba(220, 38, 38, 0.7);
+    }
+    .btn-diff-item.active.btn-safe {
+      background: #059669;
+      color: #ffffff;
+      box-shadow: 0 0 20px rgba(5, 150, 105, 0.7);
+    }
+
+    /* سالن کد با شیشه مات و پرتو لیزری */
+    .code-glass-chamber {
+      position: relative;
+      min-height: 460px;
+      background: rgba(0, 0, 0, 0.35);
+      overflow: hidden;
+    }
+    .spatial-laser-ray {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #00f5ff, #ff007f, #00f5ff, transparent);
+      box-shadow: 0 0 35px #00f5ff, 0 0 60px #ff007f;
+      animation: laserRayScan 4s ease-in-out infinite alternate;
+      z-index: 25;
+      pointer-events: none;
+    }
+    @keyframes laserRayScan {
+      0% { top: 0%; opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { top: 96%; opacity: 0.4; }
+    }
+
+    /* سورس‌کد با هایلایت پالسی خطرات */
+    .source-code-view {
+      padding: 1.85rem;
+      font-family: var(--font-mono);
+      font-size: 0.94rem;
+      direction: ltr;
+      text-align: left;
+      line-height: 1.85;
+      color: #f1f5f9;
+    }
+    .pulse-danger-band {
+      background: rgba(255, 0, 85, 0.22);
+      border-right: 4px solid #ff0055;
+      display: block;
+      margin: 0 -1.85rem;
+      padding: 0 1.85rem;
+      animation: dangerBandPulse 2s infinite alternate;
+    }
+    @keyframes dangerBandPulse {
+      0% { background: rgba(255, 0, 85, 0.12); }
+      100% { background: rgba(255, 0, 85, 0.32); }
+    }
+
+    /* کارت‌های آسیب‌پذیری با شیشه مات کریستالی */
+    .threat-glass-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 0, 85, 0.45);
+      border-radius: 22px;
+      padding: 1.4rem 1.6rem;
+      margin-bottom: 1.15rem;
+      position: relative;
+      transition: var(--transition);
+      overflow: hidden;
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2);
+      transform: translateZ(30px);
+    }
+    .threat-glass-card:hover {
+      transform: translateZ(45px) scale(1.02);
+      border-color: rgba(255, 0, 85, 0.95);
+      box-shadow: 0 18px 50px rgba(255, 0, 85, 0.35);
+    }
+    .threat-glass-pill {
+      font-size: 0.78rem;
+      font-weight: 800;
+      padding: 0.28rem 0.9rem;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .pill-crit-red {
+      background: rgba(255, 0, 85, 0.25);
+      color: #ff3366;
+      border: 1px solid rgba(255, 0, 85, 0.7);
+      box-shadow: 0 0 15px rgba(255, 0, 85, 0.4);
+    }
+    .pill-warn-amber {
+      background: rgba(245, 158, 11, 0.25);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.7);
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+    }
+
+    /* دکمه‌های اقدام شیشه‌ای */
+    .actions-glass-cluster {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.15rem;
+      margin-top: 1.6rem;
+      transform: translateZ(35px);
+    }
+    .btn-glass-action {
+      position: relative;
+      padding: 1.1rem 1.5rem;
+      border-radius: 20px;
+      border: 1.5px solid rgba(255, 255, 255, 0.3);
+      font-family: var(--font-fa);
+      font-weight: 900;
+      font-size: 0.98rem;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.65rem;
+      overflow: hidden;
+      backdrop-filter: blur(25px);
+    }
+    .btn-glass-ai-fix {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.9), rgba(255, 0, 127, 0.9));
+      color: #ffffff;
+      box-shadow: 0 0 45px rgba(255, 0, 127, 0.65);
+    }
+    .btn-glass-ai-fix:hover {
+      transform: scale(1.03);
+      box-shadow: 0 0 65px rgba(255, 0, 127, 1);
+    }
+    .btn-glass-offline-fix {
+      background: linear-gradient(135deg, rgba(5, 150, 105, 0.9), rgba(16, 185, 129, 0.9));
+      color: #ffffff;
+      box-shadow: 0 0 40px rgba(16, 185, 129, 0.55);
+    }
+    .btn-glass-offline-fix:hover {
+      transform: scale(1.03);
+      box-shadow: 0 0 60px rgba(16, 185, 129, 0.9);
+    }
+
+    /* دکمه اسکن شبیه‌ساز هایپردرایو */
+    .btn-hyperscan-trigger {
+      background: linear-gradient(135deg, #00f5ff, #0284c7);
+      color: #000;
+      font-weight: 900;
+      border: 1.5px solid rgba(255, 255, 255, 0.45);
+      padding: 0.58rem 1.5rem;
+      border-radius: 14px;
+      font-family: var(--font-fa);
+      cursor: pointer;
+      box-shadow: 0 0 30px rgba(0, 245, 255, 0.7);
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+    }
+    .btn-hyperscan-trigger:hover {
+      transform: scale(1.06);
+      box-shadow: 0 0 45px rgba(0, 245, 255, 1);
+    }
+
+    /* مُهر هولوگرافیک دیجیتال ۱۰۰/۱۰۰ */
+    .crypto-seal-panel {
+      margin-top: 1.5rem;
+      padding: 1.15rem 1.6rem;
+      border-radius: 22px;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 0 40px rgba(16, 185, 129, 0.25);
+      transform: translateZ(25px);
+    }
+    .crypto-pill-tag {
+      font-size: 0.85rem;
+      background: #10b981;
+      color: #000;
+      font-weight: 900;
+      padding: 0.35rem 0.95rem;
+      border-radius: 999px;
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.7);
+    }
+
+    /* نوار کنترل فرماندهی پایینی */
+    .bottom-glass-dock {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(35px) saturate(220%);
+      -webkit-backdrop-filter: blur(35px) saturate(220%);
+      border-top: 1.5px solid rgba(255, 255, 255, 0.18);
+      padding: 1rem 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 1000;
+      box-shadow: 0 -15px 35px rgba(0, 0, 0, 0.6);
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       استاندارد رسپانسیو و نقاط شکست (Responsive Breakpoints)
+       ══════════════════════════════════════════════════════════ */
+    @media (max-width: 1150px) {
+      .workspace-glass-grid {
+        grid-template-columns: 1fr;
+        padding: 1.25rem 1.5rem 8rem;
+      }
+    }
+    @media (max-width: 768px) {
+      .pure-glass-navbar {
+        padding: 0.75rem 1rem;
+        gap: 0.75rem;
+      }
+      .glass-telemetry-chip { display: none; }
+      .workspace-glass-grid {
+        padding: 1rem 1rem 7.5rem;
+        gap: 1.5rem;
+      }
+      .actions-glass-cluster {
+        grid-template-columns: 1fr;
+      }
+      .editor-glass-bar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .bottom-glass-dock {
+        padding: 0.75rem 1rem;
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+      }
+    }
+    @media (max-width: 480px) {
+      .brand-title-main { font-size: 1.1rem; }
+      .quantum-reactor-vault { transform: scale(0.85); margin: -10px auto; }
+      .score-glass-big { font-size: 2.2rem; }
+      .glass-mode-btn { padding: 0.4rem 0.8rem; font-size: 0.75rem; }
+    }
+
+    /* تم‌های رنگی */
+    body.theme-amber .real-glass-panel {
+      border-color: rgba(255, 0, 85, 0.35) !important;
+    }
+    body.theme-amber .glass-shockwave-ring { border-color: #ff0055 !important; }
+    body.theme-amber .gyro-ring-alpha { border-color: rgba(255, 0, 85, 0.7) !important; }
+    body.theme-amber .spatial-laser-ray {
+      background: linear-gradient(90deg, transparent, #f59e0b, #ff0055, #f59e0b, transparent) !important;
+      box-shadow: 0 0 35px #f59e0b, 0 0 60px #ff0055 !important;
+    }
+
+    body.theme-emerald .real-glass-panel {
+      border-color: rgba(16, 185, 129, 0.35) !important;
+    }
+    body.theme-emerald .glass-shockwave-ring { border-color: #10b981 !important; }
+    body.theme-emerald .gyro-ring-alpha { border-color: rgba(16, 185, 129, 0.7) !important; }
+    body.theme-emerald .spatial-laser-ray {
+      background: linear-gradient(90deg, transparent, #10b981, #d97706, #10b981, transparent) !important;
+      box-shadow: 0 0 35px #10b981, 0 0 60px #d97706 !important;
+    }
+  </style>
+</head>
+<body class="theme-cyan">
+
+  <!-- هاله نور تعاملی ماوس -->
+  <div class="cursor-ambient-light" id="ambientLight" aria-hidden="true"></div>
+
+  <!-- کهکشان عمیق پس‌زمینه که از پشت شیشه‌های شفاف می‌درخشد -->
+  <div class="cosmic-backdrop" aria-hidden="true"></div>
+  <div class="cosmic-grid-mesh" aria-hidden="true"></div>
+
+  <!-- نوار کنترل بالای صفحه با شیشه کریستالی شفاف -->
+  <header class="pure-glass-navbar" role="banner">
+    <div class="brand-glass-box">
+      <span class="brand-shield-orb" aria-hidden="true">🛡️</span>
+      <div>
+        <h1 class="brand-title-main">سپر کد شیشه‌ای سه‌بعدی</h1>
+        <span class="brand-subtitle-tech" style="display:block;">CRYSTAL GLASS DEFENSE PLATFORM</span>
+      </div>
+    </div>
+
+    <!-- تله‌متری فرکانسی بلادرنگ -->
+    <div class="glass-telemetry-chip" role="status" aria-label="وضعیت بلادرنگ سیستم">
+      <div class="tele-stat-item">
+        <div class="pulse-radar-dot" aria-hidden="true"></div>
+        <span>رادار دفاعی: <strong>۳۶۰° فعال</strong></span>
+      </div>
+      <div class="tele-stat-item">
+        <span>پایداری شیشه مات: <strong>۹۹.۹٪</strong></span>
+      </div>
+      <div class="tele-stat-item">
+        <span>زمان پردازش هوش مصنوعی: <strong>۳۵ میلی‌ثانیه</strong></span>
+      </div>
+    </div>
+
+    <!-- تب‌های استایل شیشه‌ای -->
+    <nav class="glass-switch-tabs" aria-label="انتخاب پالت رنگی شیشه">
+      <button type="button" class="glass-mode-btn tab-cyan active" onclick="setGlassCosmicMode('cyan', this)" aria-label="تم شیشه کوانتوم فیروزه‌ای">
+        ⚡ ۱. کوانتوم فیروزه‌ای
+      </button>
+      <button type="button" class="glass-mode-btn tab-amber" onclick="setGlassCosmicMode('amber', this)" aria-label="تم شیشه کهربایی نایت‌سیتی">
+        🔥 ۲. کهربایی نایت‌سیتی
+      </button>
+      <button type="button" class="glass-mode-btn tab-emerald" onclick="setGlassCosmicMode('emerald', this)" aria-label="تم شیشه زمردی امپریال">
+        👑 ۳. زمردی امپریال
+      </button>
+    </nav>
+  </header>
+
+  <!-- بوم اصلی استودیو با کارت‌های شیشه‌ای سه‌بعدی -->
+  <main class="workspace-glass-grid" role="main">
+
+    <!-- کارت ادیتور شیشه‌ای سه‌بعدی -->
+    <section class="real-glass-panel" id="editorGlassCard" aria-labelledby="editorHeading">
+      <!-- بازتاب نوری پویا روی سطح شیشه -->
+      <div class="glass-glare-effect" aria-hidden="true"></div>
+      
+      <div class="editor-glass-bar layer-depth-1">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <span style="font-size:1.3rem;" aria-hidden="true">💻</span>
+          <h2 id="editorHeading" class="section-title-h2">ویرایشگر هوشمند سورس‌کد</h2>
+        </div>
+
+        <!-- تب مقایسه سریع قبل و بعد -->
+        <div class="diff-toggle-glass" role="group" aria-label="مقایسه قبل و بعد از اصلاح">
+          <button type="button" class="btn-diff-item btn-vuln active" onclick="switchGlassSource('vuln', this)" aria-label="نمایش سورس اولیه دارای باگ">🔴 سورس دارای باگ</button>
+          <button type="button" class="btn-diff-item btn-safe" onclick="switchGlassSource('safe', this)" aria-label="نمایش سورس امن‌شده با امتیاز ۱۰۰">🟢 سورس امن‌شده (امتیاز ۱۰۰)</button>
+        </div>
+      </div>
+
+      <div class="code-glass-chamber layer-depth-1" role="region" aria-label="محتوای سورس کد">
+        <!-- لیزر اسکنر باریکه دوطرفه متحرک -->
+        <div class="spatial-laser-ray" aria-hidden="true"></div>
+
+        <!-- حالت کد آسیب‌پذیر -->
+        <div id="sourceCodeVuln" class="source-code-view">
+<pre style="margin:0; font-family:inherit;"><code><span style="color:#f43f5e;">import</span> os, hashlib
+
+<span style="color:#64748b;"># کلیدهای محرمانه هاردکد شده در برنامه</span>
+<span class="pulse-danger-band">API_KEY = <span style="color:#f59e0b;">"prod_live_9942a1b8e4"</span>  <span style="color:#f43f5e; font-size:0.8rem;"># ⚠️ کلید خصوصی فاش شده</span></span>
+
+<span style="color:#38bdf8;">def</span> <span style="color:#a78bfa;">calc</span>(user_input):
+    <span style="color:#64748b;"># آسیب‌پذیری بحرانی اجرای کد دلخواه کاربر</span>
+<span class="pulse-danger-band">    <span style="color:#f43f5e;">return</span> eval(user_input)  <span style="color:#f43f5e; font-size:0.8rem;"># 🚨 دسترسی روت مهاجم</span></span>
+
+<span style="color:#38bdf8;">def</span> <span style="color:#a78bfa;">hash_pwd</span>(pwd):
+    <span style="color:#64748b;"># آسیب‌پذیری الگوریتم هش شکسته شده</span>
+    <span style="color:#f43f5e;">return</span> hashlib.md5(pwd.encode()).hexdigest()</code></pre>
+        </div>
+
+        <!-- حالت کد امن‌شده تاییدشده -->
+        <div id="sourceCodeSafe" class="source-code-view" style="display:none; color:#a7f3d0;">
+<pre style="margin:0; font-family:inherit;"><code><span style="color:#34d399;"># ✅ سورس‌کد کاملاً بازنویسی و ایمن‌سازی شده با امتیاز ۱۰۰/۱۰۰ تاییدشده</span>
+<span style="color:#f43f5e;">import</span> os, secrets
+<span style="color:#f43f5e;">from</span> werkzeug.security <span style="color:#f43f5e;">import</span> generate_password_hash
+
+<span style="color:#64748b;"># کلیدهای محرمانه از متغیرهای محیطی سیستم خوانده می‌شوند</span>
+API_KEY = os.environ.get(<span style="color:#f59e0b;">"API_KEY"</span>, secrets.token_hex(32))
+
+<span style="color:#38bdf8;">def</span> <span style="color:#a78bfa;">calc</span>(user_input):
+    <span style="color:#64748b;"># جایگزینی با مفسر محاسباتی امن بدون اجازه دسترسی به توابع سیستمی</span>
+    <span style="color:#f43f5e;">return</span> safe_math_eval(user_input)
+
+<span style="color:#38bdf8;">def</span> <span style="color:#a78bfa;">hash_pwd</span>(pwd):
+    <span style="color:#64748b;"># استفاده از الگوریتم مدرن و غیرقابل بازگشت</span>
+    <span style="color:#f43f5e;">return</span> generate_password_hash(pwd)</code></pre>
+        </div>
+
+      </div>
+
+      <div class="layer-depth-2" style="padding:0.95rem 1.85rem; background:rgba(0,0,0,0.3); border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center; font-size:0.84rem; color:#cbd5e1;">
+        <span>سنسور اسکن شیشه‌ای فعال | زبان: پایتون ۳</span>
+        <button type="button" class="btn-hyperscan-trigger" onclick="runHyperScanSim()" aria-label="شبیه‌سازی اسکن با سرعت هایپردرایو">⚡ شبیه‌ساز اسکن هایپردرایو</button>
+      </div>
+
+    </section>
+
+    <!-- کارت وضعیت هولوگرافیک و آسیب‌پذیری‌ها -->
+    <section class="real-glass-panel" id="telemetryGlassCard" style="padding:1.85rem;" aria-labelledby="telemetryHeading">
+      <!-- بازتاب نوری پویا روی سطح شیشه -->
+      <div class="glass-glare-effect" aria-hidden="true"></div>
+      
+      <!-- رآکتور آرک کوانتومی سه‌بعدی شناور در لایه Z -->
+      <div class="layer-depth-3" style="background:rgba(255,255,255,0.035); border:1.5px solid rgba(255,255,255,0.18); border-radius:26px; padding:1.5rem; margin-bottom:1.6rem; display:flex; align-items:center; justify-content:space-around; flex-wrap:wrap; gap:1.35rem; position:relative; overflow:hidden; box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.3);">
+        
+        <div class="quantum-reactor-vault" aria-hidden="true">
+          <div class="glass-shockwave-ring"></div>
+          <div class="glass-shockwave-ring"></div>
+          <div class="gyro-ring-alpha"></div>
+          <div class="gyro-ring-beta"></div>
+          <div class="gyro-ring-gamma"></div>
+          <div class="glass-radar-disc">
+            <div class="glass-radar-beam"></div>
+          </div>
+          <div class="arc-reactor-core">
+            <span class="score-glass-big" id="coreScoreText">۲۵</span>
+            <span style="font-size:0.64rem; color:#cbd5e1; margin-top:2px;">از ۱۰۰ نمره</span>
+          </div>
+        </div>
+
+        <div>
+          <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem;">
+            <span class="threat-glass-pill pill-crit-red">🚨 وضعیت بحرانی</span>
+            <span style="font-size:0.85rem; color:#cbd5e1;">سپر نفوذپذیر</span>
+          </div>
+          <div style="font-size:0.9rem; color:#f1f5f9; max-width:245px; line-height:1.6;">
+            ۲ آسیب‌پذیری بحرانی در سورس‌کد کشف شد. کسر نمره امنیتی: ۷۵ نمره.
+          </div>
+        </div>
+      </div>
+
+      <!-- کارت‌های تحلیل خطرات -->
+      <div class="layer-depth-2">
+        <h2 id="telemetryHeading" style="font-size:1.05rem; font-weight:800; margin-bottom:0.9rem; color:#f8fafc;">⚠️ رخنه‌های امنیتی کشف شده:</h2>
+        
+        <article class="threat-glass-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.45rem;">
+            <span class="threat-glass-pill pill-crit-red">🔴 بحرانی (-۳۵ نمره)</span>
+            <span style="font-size:0.75rem; font-family:var(--font-mono); color:#cbd5e1;">خط ۹</span>
+          </div>
+          <strong style="font-size:0.94rem; color:#ffffff;">توابع خطرناک اجرای مستقیم کد (eval)</strong>
+          <p style="font-size:0.82rem; color:#cbd5e1; margin-top:0.35rem;">امکان نفوذ کامل کاربر و اجرای کدهای مخرب روی سرور.</p>
+        </article>
+
+        <article class="threat-glass-card" style="border-color:rgba(245, 158, 11, 0.45);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.45rem;">
+            <span class="threat-glass-pill pill-warn-amber">🟠 سطح بالا (-۲۵ نمره)</span>
+            <span style="font-size:0.75rem; font-family:var(--font-mono); color:#cbd5e1;">خط ۴</span>
+          </div>
+          <strong style="font-size:0.94rem; color:#ffffff;">کلید محرمانه هاردکد شده</strong>
+          <p style="font-size:0.82rem; color:#cbd5e1; margin-top:0.35rem;">کلید خصوصی به صورت متن خام در سورس برنامه قابل سرقت است.</p>
+        </article>
+      </div>
+
+      <!-- دکمه‌های اقدام شیشه‌ای -->
+      <div class="actions-glass-cluster layer-depth-3">
+        <button type="button" class="btn-glass-action btn-glass-ai-fix" aria-label="اصلاح هوشمند آنلاین با هوش مصنوعی جمینای">✨ بازنویسی با Gemini AI</button>
+        <button type="button" class="btn-glass-action btn-glass-offline-fix" aria-label="اصلاح فوری آفلاین الگوی دمو">⚡ اصلاح فوری (دمو)</button>
+      </div>
+
+      <!-- مُهر هولوگرافیک دیجیتال -->
+      <div class="crypto-seal-panel layer-depth-2">
+        <div style="display:flex; align-items:center; gap:0.65rem;">
+          <span style="color:#10b981; font-size:1.3rem;" aria-hidden="true">🛡️</span>
+          <div>
+            <strong style="font-size:0.9rem; color:#10b981; display:block;">تاییدیه سلامت کد</strong>
+            <span style="font-size:0.76rem; color:#cbd5e1;">کد اصلاح‌شده ۱۰۰٪ مورد تایید اسکنر قرار گرفت</span>
+          </div>
+        </div>
+        <span class="crypto-pill-tag">نمره ۱۰۰/۱۰۰ تاییدشده</span>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- نوار کنترل فرماندهی پایینی -->
+  <footer class="bottom-glass-dock" role="contentinfo">
+    <div>
+      <strong id="activeDockTitleText" style="color:#00f5ff; font-size:1.05rem;">کنسول فعال: ۱. شیشه کریستال مات کوانتوم (گلس‌مورفیسم اصیل)</strong>
+      <div style="font-size:0.82rem; color:#cbd5e1;" id="activeDockDescText">
+        شیشه کریستالی بسیار شفاف و مات با بازتاب نور زنده ماوس + عمق سه‌بعدی روان رآکتور کوانتومی.
+      </div>
+    </div>
+    <div>
+      <span style="font-size:0.9rem; color:#f8fafc; font-weight:800; background:rgba(255,255,255,0.08); padding:0.45rem 1.1rem; border-radius:999px; border:1.5px solid rgba(255,255,255,0.25);">💎 استاندارد کامل وب و گلس‌مورفیسم</span>
+    </div>
+  </footer>
+
+  <script>
+    const glassThemeRegistry = {
+      cyan: {
+        title: 'کنسول فعال: ۱. شیشه کریستال مات کوانتوم (گلس‌مورفیسم اصیل)',
+        desc: 'شیشه کریستالی بسیار شفاف و مات با بازتاب نور زنده ماوس + عمق سه‌بعدی روان رآکتور کوانتومی.'
+      },
+      amber: {
+        title: 'کنسول فعال: ۲. شیشه کهربایی نایت‌سیتی (شعله‌ور)',
+        desc: 'شیشه کریستالی گرم با هاله‌های آتشین کهربایی و انعکاس‌های نوری براق سرخ.'
+      },
+      emerald: {
+        title: 'کنسول فعال: ۳. شیشه زمردی امپریال و طلای متالیک',
+        desc: 'شیشه سنگین و شفاف با خطوط نوری سبز زمردی هکرهای کلاه‌سفید و حاشیه‌های طلایی.'
+      }
+    };
+
+    function setGlassCosmicMode(themeId, btn) {
+      document.body.classList.remove('theme-cyan', 'theme-amber', 'theme-emerald');
+      document.body.classList.add('theme-' + themeId);
+
+      document.querySelectorAll('.glass-mode-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+
+      const info = glassThemeRegistry[themeId];
+      if (info) {
+        document.getElementById('activeDockTitleText').textContent = info.title;
+        document.getElementById('activeDockDescText').textContent = info.desc;
+      }
+    }
+
+    function switchGlassSource(viewType, btn) {
+      document.querySelectorAll('.btn-diff-item').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+
+      const vulnEl = document.getElementById('sourceCodeVuln');
+      const safeEl = document.getElementById('sourceCodeSafe');
+
+      if (viewType === 'vuln') {
+        vulnEl.style.display = 'block';
+        safeEl.style.display = 'none';
+      } else {
+        vulnEl.style.display = 'none';
+        safeEl.style.display = 'block';
+      }
+    }
+
+    // شبیه‌ساز اسکن تعاملی زنده هایپردرایو
+    function runHyperScanSim() {
+      const beam = document.querySelector('.spatial-laser-ray');
+      beam.style.animation = 'none';
+      void beam.offsetWidth;
+      beam.style.animation = 'laserRayScan 1.4s ease-in-out infinite alternate';
+
+      const counter = document.getElementById('coreScoreText');
+      let score = 0;
+      counter.textContent = '۰';
+      const timer = setInterval(() => {
+        score += 5;
+        if (score <= 25) {
+          counter.textContent = score.toLocaleString('fa-IR');
+        } else {
+          clearInterval(timer);
+          beam.style.animation = 'laserRayScan 4s ease-in-out infinite alternate';
+        }
+      }, 70);
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // فیزیک روان و نرم حرکت سه‌بعدی شیشه (Smooth LERP Physics)
+    // با هاله نور ماوس و بازتاب نور دینامیک روی شیشه
+    // ══════════════════════════════════════════════════════════
+    let targetX = 0, targetY = 0;
+    let currentX = 0, currentY = 0;
+    const glassCards = document.querySelectorAll('.real-glass-panel');
+    const mouseLight = document.getElementById('ambientLight');
+
+    document.addEventListener('mousemove', (e) => {
+      if (mouseLight) {
+        mouseLight.style.left = e.clientX + 'px';
+        mouseLight.style.top = e.clientY + 'px';
+      }
+
+      // چرخش نرم و ملایم (حداکثر ۱۲ درجه)
+      targetX = ((window.innerWidth / 2 - e.pageX) / window.innerWidth) * 16;
+      targetY = -((window.innerHeight / 2 - e.pageY) / window.innerHeight) * 16;
+
+      glassCards.forEach(card => {
+        const rect = card.getBoundingClientRect();
+        const glareX = ((e.clientX - rect.left) / rect.width) * 100;
+        const glareY = ((e.clientY - rect.top) / rect.height) * 100;
+        card.style.setProperty('--glare-x', `${glareX}%`);
+        card.style.setProperty('--glare-y', `${glareY}%`);
+      });
+    });
+
+    // موج ضربانی انرژی با کلیک روی شیشه
+    document.addEventListener('click', (e) => {
+      const ripple = document.createElement('div');
+      ripple.className = 'glass-click-ripple';
+      ripple.style.left = e.clientX + 'px';
+      ripple.style.top = e.clientY + 'px';
+      document.body.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 800);
+    });
+
+    // حلقه رندر ۶۰ فریم روان
+    function renderGlassLoop() {
+      currentX += (targetX - currentX) * 0.08;
+      currentY += (targetY - currentY) * 0.08;
+
+      glassCards.forEach(card => {
+        card.style.transform = `rotateY(${-currentX}deg) rotateX(${currentY}deg)`;
+      });
+
+      requestAnimationFrame(renderGlassLoop);
+    }
+    renderGlassLoop();
+  </script>
+</body>
+</html>
