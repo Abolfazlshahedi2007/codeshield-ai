@@ -515,7 +515,6 @@ def scan_code(code: str, language: str) -> dict:
         for compiled in compiled_patterns:
             for line_no, raw_line in enumerate(lines, start=1):
                 stripped = raw_line.strip()
-                # Skip comments to prevent false positives
                 if stripped.startswith(("#", "//", "/*", "*")):
                     continue
                 if compiled.search(raw_line):
