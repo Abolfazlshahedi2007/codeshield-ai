@@ -63,7 +63,7 @@ DEMO_SAMPLES = {
         "code": """<?php
 // ⚠️ کد آسیب‌پذیر - برای نمایش آموزشی
 $conn = mysqli_connect("localhost", "root", "admin123", "myDB");
-$id = $_GET['id'];
+$id =$_GET['id'];
 $result = mysqli_query($conn, "SELECT * FROM users WHERE id = " . $id);
 $row = mysqli_fetch_array($result);
 
@@ -75,7 +75,7 @@ echo "<p>ایمیل: " . $row['email'] . "</p>";
 $admin_password = "supersecret123";
 $api_key = "AIzaSyXXXXXXXXXXXXXX";
 
-if (md5($password) == $row['pass']) {
+if (md5($password) ==$row['pass']) {
     echo "ورود موفق";
 }
 ?>""",
@@ -188,6 +188,40 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     app.run(host='127.0.0.1', port=5000)
+""",
+    },
+    "python_logic_perf": {
+        "label": "کد دارای باگ منطقی و پرفورمنس (Python AST)",
+        "language": "python",
+        "code": """import time
+
+# ۱. باگ منطقی حافظه مشترک (Mutable Default Argument)
+def add_audit_log(event, logs=[]):
+    logs.append(event)
+    
+    # ۲. نشت منابع سیستم (فایل باز رها شده بدون بلاک with)
+    f = open("audit.log", "a")
+    f.write(str(event) + "\\n")
+    
+    # ۳. مقایسه غیردقیق با None
+    if event == None:
+        return logs
+        # ۴. کد مرده و غیرقابل دسترس (Unreachable Code)
+        print("این خط هرگز اجرا نخواهد شد!")
+    return logs
+
+# ۵. گلوگاه پرفورمنس: کوئری داخل حلقه (N+1) و پیچیدگی O(n³)
+def sync_users_report(users, db_cursor):
+    try:
+        for u in users:
+            db_cursor.execute("SELECT score FROM stats WHERE uid = ?", (u,))
+            time.sleep(1)  # قفل کردن ترد اصلی سرور
+            for i in users:
+                for j in users:
+                    pass
+    except:
+        # ۶. بلعیدن خطا به صورت خاموش (Silent Failure)
+        pass
 """,
     },
 }
@@ -504,23 +538,23 @@ def call_gemini_api(code: str, language: str, issues: list, api_key: str) -> dic
                 issues_list.append(f"- {i.get('title','')}: {i.get('description','')} (خطوط: {i.get('lines',[])})")
     issues_text = "\n".join(issues_list) if issues_list else "موردی ثبت نشده است."
 
-    prompt = f"""شما یک متخصص ارشد امنیت نرم‌افزار هستید. کد {language} زیر دارای آسیب‌پذیری‌های امنیتی است.
+    prompt = f"""شما یک متخصص ارشد امنیت نرم‌افزار و بهینه‌سازی کامپایلر هستید. کد {language} زیر دارای مشکلات امنیتی، باگ‌های منطقی یا گلوگاه‌های پرفورمنس است.
 
-آسیب‌پذیری‌های شناسایی‌شده:
+موارد شناسایی‌شده:
 {issues_text}
 
-کد آسیب‌پذیر:
-```
+کد فعلی:
+
 {code}
-```
+
 
 وظایف شما:
-1. کد را کاملاً بازنویسی کرده و تمام آسیب‌پذیری‌ها را رفع کنید.
-2. توضیح فارسی کاملی از اصلاحات امنیتی ارائه دهید.
+1. کد را کاملاً بازنویسی کنید تا تمام آسیب‌پذیری‌های امنیتی، باگ‌های منطقی و گلوگاه‌های پرفورمنس/منابع رفع شوند.
+2. توضیح فارسی کاملی از اصلاحات امنیتی، منطقی و بهینه‌سازی پرفورمنس ارائه دهید.
 
 خروجی باید منحصراً یک شیء JSON با ساختار زیر باشد:
 {{
-  "fixed_code": "کد اصلاح‌شده",
+  "fixed_code": "کد اصلاح و بهینه‌شده",
   "explanation": "توضیح فارسی"
 }}"""
 
@@ -626,5 +660,5 @@ if __name__ == "__main__":
     import sys
     sys.stdout.reconfigure(encoding='utf-8')
     init_db()
-    print("[OK] CodeShield AI is running at http://127.0.0.1:5000")
+    print("[OK] CodeShield AI is running at [http://127.0.0.1:5000](http://127.0.0.1:5000)")
     app.run(debug=True, host="127.0.0.1", port=5000)
