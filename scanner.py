@@ -553,6 +553,14 @@ def scan_code(code: str, language: str) -> dict:
                 seen_rule_ids.add(js_issue["id"])
                 total_deduction += js_issue["deduction"]
                 issues.append(js_issue)
+
+    # ۴. اجرای تحلیلگر ساختاری برای PHP
+    if language == "php":
+        for php_issue in _ast_scan_php(code):
+            if php_issue["id"] not in seen_rule_ids:
+                seen_rule_ids.add(php_issue["id"])
+                total_deduction += php_issue["deduction"]
+                issues.append(php_issue)
     
     issues.sort(key=lambda x: SEVERITY_ORDER.get(x["severity"], 99))
     score = max(0, min(100, 100 - total_deduction))
@@ -643,3 +651,54 @@ def _ast_scan_javascript(code: str) -> list:
                 break
 
     return issues    
+
+def _ast_scan_php(code: str) -> list:
+    """
+    Advanced logical and performance analysis for PHP code.
+    Detects N+1 queries in loops, loose equality, and type juggling issues.
+    """
+    issues = []
+    lines = code.splitlines()
+
+    for line_no, raw_line in enumerate(lines, start=1):
+        stripped = raw_line.strip()
+        if stripped.startswith(("//", "/*", "*", "#")):
+            continue
+
+        # ۱. بررسی مقایسه سست و Type Juggling
+        if " == " in raw_line or " != " in raw_line:
+            if "=== " not in raw_line and "!== " not in raw_line and "null" not in raw_line and "false" not in raw_line:
+                issues.append({
+                    "id": "php_loose_equality",
+                    "category": "logic",
+                    "title": "مقایسه منطقی غیردقیق (استفاده از == به جای ===)",
+                    "title_en": "Loose Equality Comparison",
+                    "severity": "medium",
+                    "deduction": 8,
+                    "description": "استفاده از == در پی‌ات‌پی باعث تبدیل نوع ضمنی (Type Juggling) شده و خطای منطقی خطرناک ایجاد می‌کند.",
+                    "hint": "همیشه از مقایسه سخت‌گیرانه (=== و !==) استفاده کنید.",
+                    "lines": [line_no],
+                })
+
+    # ۲. بررسی گلوگاه پرفورمنس: کوئری دیتابیس داخل حلقه (N+1)
+    full_code = code.lower()
+    if ("foreach" in full_code or "while" in full_code or "for" in full_code) and (
+        "mysqli_query" in full_code or "->query(" in full_code or "->prepare(" in full_code
+    ):
+        for line_no, raw_line in enumerate(lines, start=1):
+            l_lower = raw_line.lower()
+            if "mysqli_query" in l_lower or "->query(" in l_lower or "->prepare(" in l_lower:
+                issues.append({
+                    "id": "php_n_plus_1_query",
+                    "category": "performance",
+                    "title": "گلوگاه پرفورمنس شدید: اجرای کوئری دیتابیس درون حلقه (N+1)",
+                    "title_en": "N+1 Query Bottleneck inside Loop",
+                    "severity": "high",
+                    "deduction": 18,
+                    "description": "فراخوانی کوئری دیتابیس در هر دور از حلقه باعث افزایش تصاعدی بار سرور و افت شدید سرعت می‌شود.",
+                    "hint": "کوئری‌ها را به صورت دسته‌ای (Batch / WHERE IN) خارج از حلقه اجرا کنید.",
+                    "lines": [line_no],
+                })
+                break
+
+    return issues
