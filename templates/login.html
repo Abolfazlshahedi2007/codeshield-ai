@@ -2,16 +2,16 @@
 {% block title %}ورود به کنسول امنیتی — سپر کد{% endblock %}
 {% block body %}
 <div class="auth-wrapper">
-  <!-- کنترل تغییر تم در صفحه ورود -->
+  <!-- Theme toggle controls -->
   <div style="position: absolute; top: 1.5rem; left: 1.5rem; z-index: 100;">
     <button class="btn-icon" onclick="toggleTheme()" title="تغییر تم (تیره / روشن)" aria-label="تغییر تم">🌙</button>
   </div>
 
   <div class="auth-card fade-in tilt-target">
-    <!-- بازتاب نوری کریستالی روی شیشه -->
+    <!-- Specular glare reflection -->
     <div class="glass-glare-effect" aria-hidden="true"></div>
 
-    <!-- نشان و عنوان سامانه -->
+    <!-- System badge and branding -->
     <div class="auth-logo">
       <div class="shield-icon brand-shield-orb" aria-hidden="true">🛡️</div>
       <h1 class="auth-title">سپر کد</h1>
@@ -19,7 +19,7 @@
       <span class="auth-badge-crypto">CodeShield AI • امنیت کوانتومی</span>
     </div>
 
-    <!-- پیام‌های سیستمی و اعتبارسنجی -->
+    <!-- Flash and validation messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -28,7 +28,7 @@
       {% endif %}
     {% endwith %}
 
-    <!-- فرم ورود اصلی -->
+    <!-- Primary login form -->
     <form method="POST" action="/login" class="auth-form">
       <input type="hidden" name="action" value="login"/>
       
@@ -57,7 +57,7 @@
 
     <div class="divider"><span>یا دسترسی فوری</span></div>
 
-    <!-- ورود یک‌کلیکی داور و مهمان -->
+    <!-- One-click demo login -->
     <form method="POST" action="/login">
       <button type="submit" name="action" value="demo" class="btn btn-demo w-full" id="demoLoginBtn">
         ⚡ ورود سریع داور و مهمان (بدون نیاز به ثبت‌نام)

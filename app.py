@@ -61,17 +61,17 @@ DEMO_SAMPLES = {
         "label": "کد آسیب‌پذیر PHP (SQL Injection + XSS)",
         "language": "php",
         "code": """<?php
-// ⚠️ کد آسیب‌پذیر - برای نمایش آموزشی
+// Vulnerable code demonstration
 $conn = mysqli_connect("localhost", "root", "admin123", "myDB");
 $id =$_GET['id'];
 $result = mysqli_query($conn, "SELECT * FROM users WHERE id = " . $id);
 $row = mysqli_fetch_array($result);
 
-// XSS آسیب‌پذیری
+// Cross-site scripting (XSS) vulnerability
 echo "خوش آمدید " . $_GET['name'];
 echo "<p>ایمیل: " . $row['email'] . "</p>";
 
-// پسورد هاردکد شده
+// Hardcoded sensitive credentials
 $admin_password = "supersecret123";
 $api_key = "AIzaSyXXXXXXXXXXXXXX";
 
@@ -88,7 +88,7 @@ import hashlib, os
 
 app = Flask(__name__)
 
-# اطلاعات حساس هاردکد شده
+# Hardcoded sensitive credentials
 password = "admin123"
 secret = "my-super-secret-key"
 api_key = "sk-abc123xyzDEFGHIJ"
@@ -96,44 +96,44 @@ api_key = "sk-abc123xyzDEFGHIJ"
 @app.route('/calculate')
 def calculate():
     expr = request.args.get('expr', '')
-    # eval بسیار خطرناک!
+    # Arbitrary code execution vulnerability via eval
     result = eval(expr)
     return str(result)
 
 @app.route('/login', methods=['POST'])
 def login():
     pwd = request.form['password']
-    # MD5 الگوریتم ضعیف
+    # Weak cryptographic hash (MD5)
     hashed = hashlib.md5(pwd.encode()).hexdigest()
     if hashed == hashlib.md5(password.encode()).hexdigest():
         return "ورود موفق"
     return "خطا"
 
 if __name__ == '__main__':
-    # حالت دیباگ در production
+    # Insecure debug mode enabled in production
     app.run(debug=True)
 """,
     },
     "javascript_vulnerable": {
         "label": "کد آسیب‌پذیر JavaScript (XSS + توکن امنیتی)",
         "language": "javascript",
-        "code": """// ⚠️ کد آسیب‌پذیر JavaScript
+        "code": """// Vulnerable JavaScript demonstration
 const API_TOKEN = "bearer_token_xyz_123456789";
 const SECRET_KEY = "mysupersecretkey";
 
 function showUserProfile(userData) {
-    // XSS آسیب‌پذیری - innerHTML خطرناک
+    // Cross-site scripting (XSS) vulnerability via innerHTML
     document.getElementById('profile').innerHTML = userData.bio;
     document.getElementById('name').innerHTML = userData.name;
     document.write('<p>' + userData.message + '</p>');
 }
 
-// eval خطرناک
+// Arbitrary code execution via eval
 function processInput(userInput) {
     return eval(userInput);
 }
 
-// توکن در URL
+// Sensitive token exposed in URL parameters
 fetch('/api/data?token=' + API_TOKEN)
     .then(r => r.json())
     .then(data => {
@@ -195,32 +195,32 @@ if __name__ == '__main__':
         "language": "python",
         "code": """import time
 
-# ۱. باگ منطقی حافظه مشترک (Mutable Default Argument)
+# 1. Mutable default parameter retains state across invocations
 def add_audit_log(event, logs=[]):
     logs.append(event)
     
-    # ۲. نشت منابع سیستم (فایل باز رها شده بدون بلاک with)
+    # 2. Resource leak: unclosed file descriptor without context manager
     f = open("audit.log", "a")
     f.write(str(event) + "\\n")
     
-    # ۳. مقایسه غیردقیق با None
+    # 3. Inappropriate equality comparison with singleton None
     if event == None:
         return logs
-        # ۴. کد مرده و غیرقابل دسترس (Unreachable Code)
+        # 4. Unreachable code following return statement
         print("این خط هرگز اجرا نخواهد شد!")
     return logs
 
-# ۵. گلوگاه پرفورمنس: کوئری داخل حلقه (N+1) و پیچیدگی O(n³)
+# 5. Performance bottleneck: query executed inside loop (N+1 problem)
 def sync_users_report(users, db_cursor):
     try:
         for u in users:
             db_cursor.execute("SELECT score FROM stats WHERE uid = ?", (u,))
-            time.sleep(1)  # قفل کردن ترد اصلی سرور
+            time.sleep(1)  # Thread blocking bottleneck
             for i in users:
                 for j in users:
                     pass
     except:
-        # ۶. بلعیدن خطا به صورت خاموش (Silent Failure)
+        # 6. Silent exception suppression
         pass
 """,
     },
@@ -389,7 +389,7 @@ def api_scan():
     code = raw_code.strip()
     result = scan_code(code, language)
 
-    # Save to DB
+    # Persist scan record to database
     try:
         snippet = code[:500] + ("..." if len(code) > 500 else "")
         scan = Scan(
@@ -438,7 +438,7 @@ def api_ai_fix():
     if api_key and not session.get("gemini_api_key"):
         session["gemini_api_key"] = api_key
 
-    # Mode 1: Explicit Offline Fix (No API key needed)
+    # Mode 1: Offline fallback remediation (no API key required)
     if mode == "offline":
         fallback = get_offline_fix(code, language, issues)
         fallback["source"] = "offline"
@@ -449,7 +449,7 @@ def api_ai_fix():
         fallback["verified_issues_count"] = verification.get("issues_count", 0)
         return jsonify(fallback)
 
-    # Mode 2: AI-Powered Fix via Gemini
+    # Mode 2: AI-assisted remediation via Gemini API
     if not api_key:
         return jsonify({
             "error": "کلید Gemini API وارد نشده است. لطفاً از آیکن تنظیمات ⚙️ در بالای صفحه کلید خود را وارد کنید، یا از دکمه «⚡ اصلاح آفلاین» استفاده نمایید."
@@ -483,11 +483,11 @@ def api_fetch_github():
         return jsonify({"error": "لطفاً آدرس فایل گیت‌هاب را وارد کنید"}), 400
 
     target_url = raw_url
-    # Support GitHub web URLs: https://github.com/owner/repo/blob/main/file.ext
+    # Normalize GitHub blob URL to raw content URL
     if "github.com" in raw_url and "/blob/" in raw_url:
         target_url = raw_url.replace("github.com", "raw.githubusercontent.com").replace("/blob/", "/")
 
-    # Strict SSRF protection: only allow official GitHub hostnames over HTTPS/HTTP
+    # Restrict allowed hostnames to official GitHub domains (SSRF mitigation)
     parsed = urlparse(target_url)
     if parsed.scheme not in ("http", "https"):
         return jsonify({"error": "آدرس لینک باید با http یا https آغاز شود"}), 400
@@ -508,7 +508,7 @@ def api_fetch_github():
         if len(content) > 300_000:
             return jsonify({"error": "حجم فایل بیش از ۳۰۰ کیلوبایت است."}), 400
 
-        # Auto-detect language
+        # Detect source language from file extension
         clean_path = target_url.split("?")[0].lower()
         lang = "python"
         if clean_path.endswith(".php"):
@@ -593,7 +593,7 @@ def call_gemini_api(code: str, language: str, issues: list, api_key: str) -> dic
             if not text:
                 continue
 
-            # Strip code block markers if present
+            # Strip Markdown code block delimiters if present
             if text.startswith("```"):
                 text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
                 text = re.sub(r"\s*```$", "", text)
@@ -647,7 +647,7 @@ def api_settings():
 def init_db():
     with app.app_context():
         db.create_all()
-        # Create demo user if not exists
+        # Seed default demo user if not present
         if not User.query.filter_by(username="داور").first():
             demo = User(username="داور", email="judge@demo.local", is_demo=True)
             demo.set_password("demo1234")

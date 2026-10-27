@@ -19,7 +19,7 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body class="dark-mode" id="body">
-  <!-- پس‌زمینه کهکشان نوری کوانتومی و شبکه فضایی سه‌بعدی -->
+  <!-- Quantum cosmic background and 3D perspective grid -->
   <div class="cosmic-backdrop" aria-hidden="true"></div>
   <div class="cosmic-grid-mesh" aria-hidden="true"></div>
   <div class="cursor-ambient-light" id="cursorAmbientLight" aria-hidden="true"></div>
@@ -28,7 +28,7 @@
 
   <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
   
-  <!-- اسکریپت فیزیک سه‌بعدی و بازتاب نور کریستالی سراسری سامانه -->
+  <!-- Global 3D physics and dynamic crystal reflection script -->
   <script>
     (function() {
       var targetX = 0, targetY = 0;
@@ -57,7 +57,7 @@
         });
       });
 
-      // موج انرژی ضربانی با کلیک روی شیشه
+      // Energy pulse ripple effect on glass click
       document.addEventListener('click', function(e) {
         if (mediaReduced.matches) return;
         var ripple = document.createElement('div');
@@ -70,7 +70,7 @@
         }, 800);
       });
 
-      // حلقه رندر روان با تخفیف اینرسی (LERP) برای کارت‌های دارای تعامل سه‌بعدی
+      // Smooth 60 FPS render loop with LERP interpolation for 3D tilt interaction
       if (!mediaReduced.matches) {
         function renderPhysicsLoop() {
           currentX += (targetX - currentX) * 0.08;

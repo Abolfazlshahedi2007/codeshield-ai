@@ -5,18 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>پیش‌نمایش طرح جدید دیزاین سیستم — سپر کد (CodeShield AI)</title>
   
-  <!-- فونت فارسی وزیرمتن و فونت کد JetBrains Mono -->
+  <!-- Vazirmatn Persian font and JetBrains Mono code font -->
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
   
-  <!-- استایل دیزاین سیستم فیکما -->
+  <!-- Figma design system styles -->
   <style>
     /* ══════════════════════════════════════════════════════════
-       ۱. متغیرهای دیزاین سیستم و پالت رنگی (Design Tokens)
+       1. Design Tokens and Color System
        ══════════════════════════════════════════════════════════ */
     :root {
-      /* تم تیره - امنیت سایبری لوکس (Dark Cyber Obsidian) */
+      /* Dark Cyber Obsidian Theme */
       --bg-base: #06090e;
       --bg-surface: #0c1017;
       --bg-card: rgba(18, 24, 38, 0.72);
@@ -31,7 +31,7 @@
       --text-muted: #94a3b8;
       --text-dim: #64748b;
       
-      /* رنگ‌های عملکردی امنیتی */
+      /* Functional Security Colors */
       --color-safe: #00f59b;
       --color-safe-glow: rgba(0, 245, 155, 0.35);
       --color-safe-bg: rgba(0, 245, 155, 0.1);
@@ -66,7 +66,7 @@
       --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* تم روشن - مینیمال و با کنتراست بالا (High-Contrast Light Cyber) */
+    /* High-Contrast Light Cyber Theme */
     html.light-mode {
       --bg-base: #f1f5f9;
       --bg-surface: #ffffff;
@@ -97,7 +97,7 @@
     }
 
     /* ══════════════════════════════════════════════════════════
-       ۲. پایه‌ها و ریست استایل‌ها
+       2. Base Styles and Reset
        ══════════════════════════════════════════════════════════ */
     *, *::before, *::after {
       box-sizing: border-box;
@@ -127,7 +127,7 @@
       text-align: left !important;
     }
 
-    /* بنر پیش‌نمایش در بالای صفحه */
+    /* Top Preview Banner */
     .preview-banner {
       background: linear-gradient(90deg, #1e1b4b, #312e81, #1e1b4b);
       color: #e0e7ff;
@@ -152,7 +152,7 @@
     }
 
     /* ══════════════════════════════════════════════════════════
-       ۳. ناوبری و هدر شیشه‌ای (Glassmorphism Navbar)
+       3. Glassmorphic Navigation Header
        ══════════════════════════════════════════════════════════ */
     .app-header {
       background: var(--bg-card);
@@ -269,7 +269,7 @@
     }
 
     /* ══════════════════════════════════════════════════════════
-       ۴. چیدمان دو ستونه IDE (Split-Screen Workspace)
+       4. Split-Screen IDE Workspace
        ══════════════════════════════════════════════════════════ */
     .workspace-container {
       max-width: 1700px;
@@ -287,7 +287,7 @@
       }
     }
 
-    /* فریم پنل‌ها */
+    /* Panel Containers */
     .ide-panel {
       background: var(--bg-card);
       backdrop-filter: blur(12px);
@@ -305,7 +305,7 @@
       border-color: rgba(255, 255, 255, 0.12);
     }
 
-    /* نوار عنوان پنل */
+    /* Panel Header Title Bar */
     .panel-topbar {
       padding: 0.85rem 1.25rem;
       background: rgba(12, 16, 23, 0.6);
@@ -344,7 +344,7 @@
       color: var(--text-main);
     }
 
-    /* کنترل‌های تولبار ویرایشگر */
+    /* Editor Toolbar Controls */
     .toolbar-actions {
       display: flex;
       align-items: center;
@@ -416,7 +416,7 @@
     }
 
     /* ══════════════════════════════════════════════════════════
-       ۵. فریم ویرایشگر کد (VS-Code Style Code Frame)
+       5. Code Editor Frame
        ══════════════════════════════════════════════════════════ */
     .editor-viewport {
       flex: 1;
@@ -463,7 +463,7 @@
     .code-func { color: #60a5fa; }
     .code-var { color: #f87171; }
 
-    /* فوتر پنل ادیتور و دکمه اسکن بزرگ */
+    /* Editor Panel Footer and Scan Button */
     .panel-footer {
       padding: 1rem 1.25rem;
       background: rgba(12, 16, 23, 0.8);
@@ -497,7 +497,7 @@
     }
 
     /* ══════════════════════════════════════════════════════════
-       ۶. پنل نتایج، نمودار امتیاز و آسیب‌پذیری‌ها (Left Panel)
+       6. Results Panel, Score Telemetry, and Threat Analysis
        ══════════════════════════════════════════════════════════ */
     .results-viewport {
       padding: 1.25rem;
@@ -507,7 +507,7 @@
       overflow-y: auto;
     }
 
-    /* کارت امتیاز بزرگ گیج (Score Card) */
+    /* Security Score Card */
     .score-hero-card {
       background: var(--bg-surface);
       border: 1px solid var(--border-subtle);
@@ -548,7 +548,7 @@
       stroke-width: 10;
       stroke-linecap: round;
       stroke-dasharray: 380;
-      stroke-dashoffset: 285; /* نمایش مقدار ۲۵ از ۱۰۰ */
+      stroke-dashoffset: 285; /* Gauge Score Display (25/100) */
       filter: drop-shadow(0 0 8px rgba(255, 59, 87, 0.6));
       transition: stroke-dashoffset 1s ease-in-out;
     }
@@ -614,7 +614,7 @@
       color: var(--text-main);
     }
 
-    /* کارت‌های آسیب‌پذیری مدرن */
+    /* Threat Vulnerability Cards */
     .vuln-cards-container {
       display: flex;
       flex-direction: column;
@@ -694,7 +694,7 @@
     }
 
     /* ══════════════════════════════════════════════════════════
-       ۷. بخش دو دکمه‌ای اصلاح هوشمند و جعبه کد امن
+       7. Intelligent Remediation and Secure Code View
        ══════════════════════════════════════════════════════════ */
     .fix-buttons-bar {
       display: grid;
@@ -753,7 +753,7 @@
       transform: translateY(-2px);
     }
 
-    /* کادر کد اصلاح شده و امن */
+    /* Remediated Secure Code Container */
     .fixed-solution-box {
       background: var(--bg-surface);
       border: 1px solid var(--color-safe);
@@ -828,7 +828,7 @@
     }
 
     /* ══════════════════════════════════════════════════════════
-       ۸. پنجره تاییدیه استانداردها در پایین صفحه
+       8. Compliance and Certification Dock
        ══════════════════════════════════════════════════════════ */
     .approval-bar-bottom {
       background: var(--bg-card);
@@ -889,7 +889,7 @@
 </head>
 <body>
 
-  <!-- بنر اطلاع‌رسانی بالای صفحه -->
+  <!-- Top banner notification -->
   <div class="preview-banner">
     <div>
       <span class="preview-badge">FIGMA PROTOTYPE</span>
@@ -900,7 +900,7 @@
     </div>
   </div>
 
-  <!-- ناوبری اصلی هدر -->
+  <!-- Primary navigation header -->
   <header class="app-header">
     <div class="brand-section">
       <div class="brand-logo-container">🛡️</div>
@@ -927,12 +927,12 @@
     </div>
   </header>
 
-  <!-- بدنه اصلی محیط کاربری دو ستونه -->
+  <!-- Main two-column workspace container -->
   <main class="workspace-container">
 
-    <!-- ────── ستون راست: ویرایشگر سورس‌کد (IDE Frame) ────── -->
+    <!-- ────── Right Column: Source Code Editor (IDE Frame) ────── -->
     <section class="ide-panel">
-      <!-- تولبار بالای ویرایشگر -->
+      <!-- Editor toolbar -->
       <div class="panel-topbar">
         <div class="panel-title-area">
           <div class="window-dots">
@@ -944,21 +944,21 @@
         </div>
 
         <div class="toolbar-actions">
-          <!-- زبان‌های برنامه‌نویسی -->
+          <!-- Programming languages -->
           <div class="lang-pills">
             <button class="lang-pill active" onclick="selectLang(this, 'python')">🐍 Python</button>
             <button class="lang-pill" onclick="selectLang(this, 'php')">🐘 PHP</button>
             <button class="lang-pill" onclick="selectLang(this, 'js')">⚡ JavaScript</button>
           </div>
 
-          <!-- دکمه‌های کنترل و ورودی -->
+          <!-- Control and input action buttons -->
           <button class="btn-tool" onclick="alert('پیش‌نمایش: قابلیت بارگذاری فایل از کامپیوتر کاملاً فعال است.')">📁 بارگذاری فایل</button>
           <button class="btn-tool" onclick="alert('پیش‌نمایش: پنجره دریافت مستقیم از گیت‌هاب فعال است.')">🐙 گیت‌هاب</button>
           <button class="btn-tool btn-danger-outline" onclick="alert('پیش‌نمایش: پاکسازی کامل ادیتور فعال است.')">🗑️ پاکسازی</button>
         </div>
       </div>
 
-      <!-- محتوای ویرایشگر کد با شماره خطوط و هایلایت -->
+      <!-- Code editor content with line numbers and syntax highlighting -->
       <div class="editor-viewport">
         <div class="gutter-lines">
           1<br/>2<br/>3<br/>4<br/>5<br/>6<br/>7<br/>8<br/>9<br/>10<br/>11<br/>12
@@ -970,20 +970,20 @@
 
 app = Flask(__name__)
 
-<span class="code-comment"># ۱. هاردکد کردن اطلاعات حساس در سورس‌کد</span>
+<span class="code-comment"># 1. Hardcoded sensitive credentials in source code</span>
 <span class="code-var">password</span> = <span class="code-string">"admin123"</span>
 <span class="code-var">api_key</span> = <span class="code-string">"AIzaSyExampleSecretKey987654"</span>
 
 @app.route(<span class="code-string">'/calculate'</span>)
 <span class="code-keyword">def</span> <span class="code-func">calculate</span>():
     expr = request.args.get(<span class="code-string">'expr'</span>, <span class="code-string">''</span>)
-<span class="code-highlight-vuln">    <span class="code-comment"># ۲. اجرای خطرناک کد دلخواه کاربر (Remote Code Execution)</span>
+<span class="code-highlight-vuln">    <span class="code-comment"># 2. Arbitrary code execution vulnerability via eval (Remote Code Execution)</span>
     result = <span class="code-keyword">eval</span>(expr)</span>
     <span class="code-keyword">return</span> str(result)
         </div>
       </div>
 
-      <!-- فوتر پنل و دکمه اسکن بزرگ -->
+      <!-- Panel footer and primary scan button -->
       <div class="panel-footer">
         <button class="btn-scan-main" onclick="simulateScan()">
           <span>🔍</span>
@@ -992,9 +992,9 @@ app = Flask(__name__)
       </div>
     </section>
 
-    <!-- ────── ستون چپ: تحلیل هوشمند و تعمیر خودکار ────── -->
+    <!-- ────── Left Column: Intelligent Analysis and Automated Remediation ────── -->
     <section class="ide-panel">
-      <!-- تولبار بالای نتایج -->
+      <!-- Results toolbar -->
       <div class="panel-topbar">
         <div class="panel-title-area">
           <span class="panel-heading">🛡️ ممیزی زنده و اصلاح خودکار هوشمند</span>
@@ -1004,10 +1004,10 @@ app = Flask(__name__)
         </div>
       </div>
 
-      <!-- محتوای اسکرول‌پذیر نتایج -->
+      <!-- Scrollable analysis results container -->
       <div class="results-viewport">
 
-        <!-- کارت گیج امتیاز امنیتی -->
+        <!-- Security score gauge card -->
         <div class="score-hero-card">
           <div class="score-circle-wrapper">
             <svg class="svg-gauge" viewBox="0 0 140 140">
@@ -1040,9 +1040,9 @@ app = Flask(__name__)
           </div>
         </div>
 
-        <!-- لیست کارت‌های آسیب‌پذیری -->
+        <!-- Vulnerability threat cards list -->
         <div class="vuln-cards-container">
-          <!-- آسیب‌پذیری ۱ -->
+          <!-- Vulnerability item 1 -->
           <div class="vuln-card">
             <div class="vuln-header">
               <span class="vuln-title">
@@ -1060,7 +1060,7 @@ app = Flask(__name__)
             </div>
           </div>
 
-          <!-- آسیب‌پذیری ۲ -->
+          <!-- Vulnerability item 2 -->
           <div class="vuln-card" style="border-right-color:#f97316;">
             <div class="vuln-header">
               <span class="vuln-title">
@@ -1079,7 +1079,7 @@ app = Flask(__name__)
           </div>
         </div>
 
-        <!-- دو دکمه اختصاصی اصلاح هوشمند -->
+        <!-- Dedicated intelligent remediation buttons -->
         <div class="fix-buttons-bar">
           <button class="btn-fix-ai" onclick="alert('پیش‌نمایش: اصلاح آنلاین با مدل‌های Gemini 2.5 و Flash Lite به طور کامل متصل است.')">
             <span>✨</span>
@@ -1091,7 +1091,7 @@ app = Flask(__name__)
           </button>
         </div>
 
-        <!-- کادر نمایش کد امن اصلاح‌شده با تاییدیه نمره ۱۰۰ -->
+        <!-- Remediated secure code view with verified score 100/100 -->
         <div class="fixed-solution-box">
           <div class="solution-topbar">
             <div class="solution-tags">
@@ -1108,17 +1108,17 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import ast, operator
 
 app = Flask(__name__)
-# ✅ خواندن اطلاعات محرمانه از متغیرهای امن محیطی
+# Load credentials from environment variables
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
 
-# ✅ جایگزینی eval با درخت نحوی AST ایمن بدون خطر نفوذ
+# Replace dangerous eval with safe AST parsing
 SAFE_OPS = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul}
 
 @app.route('/calculate')
 def calculate():
     expr = request.args.get('expr', '')
     tree = ast.parse(expr, mode='eval')
-    # ارزیابی کاملاً ایمن و بدون دسترسی به مفسر پایتون
+    # Safe expression evaluation without interpreter access
     return jsonify({"result": "محاسبه امن انجام شد"})</div>
 
           <div class="explanation-panel">
@@ -1133,7 +1133,7 @@ def calculate():
 
   </main>
 
-  <!-- نوار پایینی تاییدیه برای کاربر -->
+  <!-- User verification bottom bar -->
   <footer class="approval-bar-bottom">
     <div class="approval-text">
       <h3>
@@ -1150,7 +1150,7 @@ def calculate():
   </footer>
 
   <script>
-    // تغییر تم پیش‌نمایش به صورت زنده
+    // Dynamic live theme toggle
     function togglePreviewTheme() {
       const html = document.documentElement;
       const isDark = html.classList.toggle('light-mode');
@@ -1158,13 +1158,13 @@ def calculate():
       if (btn) btn.textContent = isDark ? '☀️' : '🌙';
     }
 
-    // انتخاب زبان
+    // Language selection handler
     function selectLang(btn, lang) {
       document.querySelectorAll('.lang-pills .lang-pill').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
     }
 
-    // شبیه‌سازی انیمیشن اسکن در پیش‌نمایش
+    // Simulate scan animation in preview
     function simulateScan() {
       const scoreNum = document.getElementById('scoreNumber');
       const gauge = document.getElementById('gaugeCircle');

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}سوابق اسکن‌های امنیتی — سپر کد{% endblock %}
 {% block body %}
-<!-- نوار هدر شیشه‌ای کریستالی -->
+<!-- Glass navigation bar -->
 <nav class="navbar">
   <div class="navbar-brand">
     <span class="navbar-logo brand-shield-orb" aria-hidden="true">🛡️</span>
@@ -22,7 +22,7 @@
 </nav>
 
 <main class="history-wrapper">
-  <!-- سربرگ شیشه‌ای سوابق -->
+  <!-- History header panel -->
   <div class="history-header-card">
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
       <div>
@@ -36,7 +36,7 @@
   </div>
 
   {% if scans %}
-  <!-- جدول شیشه‌ای کریستالی سوابق اسکن -->
+  <!-- Glass scan history table -->
   <div class="history-table-wrapper">
     <div class="glass-glare-effect" aria-hidden="true"></div>
     <table class="history-table">
@@ -83,7 +83,7 @@
     </table>
   </div>
   {% else %}
-  <!-- حالت خالی زیبا با شیشه کریستالی -->
+  <!-- Empty state container -->
   <div class="empty-state history-empty-card" style="margin-top:2.5rem;">
     <div class="empty-icon" style="font-size:3.5rem;">🛡️</div>
     <h3>هیچ پرونده اسکنی ثبت نشده است</h3>

@@ -6,7 +6,7 @@ These are returned when no API key is provided or network is unavailable.
 OFFLINE_FIXES = {
     "php_sqli_xss": {
         "code": """<?php
-// ✅ کد امن‌سازی شده با Prepared Statements و htmlspecialchars
+// Secured implementation using Prepared Statements and htmlspecialchars
 $servername = "localhost";
 $username   = $_ENV['DB_USER'] ?? 'root';
 $password   = $_ENV['DB_PASS'] ?? '';
@@ -16,7 +16,7 @@ try {
     $conn = new PDO("mysql:host=$servername;dbname=$dbname", $username, $password);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     
-    // ✅ استفاده از Prepared Statement برای جلوگیری از SQL Injection
+    // Parameterized query execution to prevent SQL injection
     $user_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
     if ($user_id === false || $user_id === null) {
         throw new InvalidArgumentException('شناسه کاربر نامعتبر است');
@@ -28,14 +28,14 @@ try {
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if ($user) {
-        // ✅ استفاده از htmlspecialchars برای جلوگیری از XSS
+        // Sanitize output to prevent cross-site scripting (XSS)
         echo "نام: " . htmlspecialchars($user['name'], ENT_QUOTES, 'UTF-8');
         echo "<br>ایمیل: " . htmlspecialchars($user['email'], ENT_QUOTES, 'UTF-8');
     } else {
         echo "کاربر یافت نشد";
     }
 } catch (PDOException $e) {
-    // ✅ عدم نمایش خطاهای دیتابیس به کاربر
+    // Log database errors internally without exposing stack traces to the client
     error_log("Database error: " . $e->getMessage());
     echo "خطا در سرور. لطفاً بعداً تلاش کنید.";
 }
@@ -64,17 +64,17 @@ from flask import Flask, request, session, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-# ✅ کلید امنیتی از متغیر محیطی
+# Load secret key from environment variable or generate secure fallback
 app.secret_key = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
 
-# ✅ استفاده از استاندارد امن PBKDF2 با 600,000 تکرار
+# Secure password hashing using PBKDF2 with 600,000 iterations
 def hash_password(password: str) -> str:
     return generate_password_hash(password, method='pbkdf2:sha256:600000')
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return check_password_hash(hashed_password, plain_password)
 
-# ✅ ارزیابی امن عبارات با درخت نحوی AST بدون فراخوانی تابع eval
+# Safe AST-based mathematical expression evaluation without eval
 import ast
 import operator
 
@@ -109,7 +109,7 @@ def calculate():
     return {'result': result}
 
 if __name__ == '__main__':
-    # ✅ Debug Mode خاموش در production
+    # Ensure debug mode is disabled in production
     app.run(debug=False, host='0.0.0.0', port=5000)""",
         "explanation": """### 🔒 توضیح اصلاحات امنیتی
 
@@ -129,37 +129,37 @@ if __name__ == '__main__':
 - `debug=False` در production تنظیم شد تا Stack Trace به کاربران نمایش داده نشود.""",
     },
     "javascript_xss_token": {
-        "code": """// ✅ کد JavaScript امن‌سازی شده
+        "code": """// Secure client-side JavaScript implementation
 
-// ✅ توکن را هرگز در کد سمت کاربر ذخیره نکنید - از HttpOnly Cookie استفاده کنید
-// توکن از سمت سرور به صورت HttpOnly Cookie ارسال می‌شود
+// Store authentication tokens in HttpOnly cookies rather than client-accessible storage
+// Tokens are issued by the server via HttpOnly cookies
 
-// ✅ تابع امن برای نمایش محتوا بدون XSS
+// Safely render text content without XSS risk
 function setTextContentSafe(element, text) {
-    // استفاده از textContent به جای innerHTML
+    // Use textContent instead of innerHTML
     element.textContent = text;
 }
 
-// ✅ اگر نیاز به HTML داشتید از DOMPurify استفاده کنید
+// Sanitize untrusted HTML markup using DOMPurify
 function setInnerHTMLSafe(element, htmlContent) {
-    // DOMPurify تمام تگ‌های خطرناک را حذف می‌کند
+    // DOMPurify strips potentially dangerous tags and attributes
     element.innerHTML = DOMPurify.sanitize(htmlContent, {
         ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'p', 'br'],
         ALLOWED_ATTR: []
     });
 }
 
-// ✅ نمایش پیام خوش‌آمدگویی - استفاده از textContent
+// Display welcome message safely using textContent
 function displayUserMessage(username) {
     const messageEl = document.getElementById('welcome-message');
     if (!messageEl) return;
-    // textContent به صورت خودکار همه کاراکترها را escape می‌کند
+    // textContent automatically escapes rendered characters
     messageEl.textContent = `خوش آمدید، ${username}!`;
 }
 
-// ✅ دریافت داده از API با اعتبارسنجی
+// Fetch data from API with input validation
 async function fetchUserData(userId) {
-    // اعتبارسنجی ورودی
+    // Validate input parameters
     if (!Number.isInteger(Number(userId)) || userId <= 0) {
         console.error('شناسه کاربر نامعتبر است');
         return null;
@@ -168,10 +168,10 @@ async function fetchUserData(userId) {
     try {
         const response = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
             method: 'GET',
-            credentials: 'include', // ارسال HttpOnly cookie به صورت خودکار
+            credentials: 'include', // Transmit HttpOnly session cookie
             headers: {
                 'Content-Type': 'application/json',
-                // ✅ CSRF Token از یک متا تگ امن خوانده می‌شود (نه localStorage)
+                // Load CSRF token from secure meta tag rather than localStorage
                 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content ?? ''
             }
         });
@@ -179,11 +179,11 @@ async function fetchUserData(userId) {
         if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
         const data = await response.json();
         
-        // ✅ نمایش امن داده‌های دریافتی
+        // Safely render received payload
         displayUserMessage(data.name);
         return data;
     } catch (error) {
-        // ✅ فقط پیام امن به کاربر نشان دهید
+        // Display generic error message to user
         setTextContentSafe(document.getElementById('error-msg'), 'خطا در دریافت اطلاعات');
     }
 }""",
@@ -206,7 +206,7 @@ async function fetchUserData(userId) {
 - شناسه‌های عددی قبل از استفاده اعتبارسنجی می‌شوند.""",
     },
     "python_secure": {
-        "code": """# ✅ این کد کاملاً امن است - امتیاز ۱۰۰
+        "code": """# Secure implementation (Score: 100/100)
 import os
 import secrets
 import logging
@@ -215,13 +215,13 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 
-# تنظیم لاگینگ امن
+# Configure structured logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# ✅ تمام پیکربندی‌های حساس از متغیر محیطی
+# Load configuration parameters from environment variables
 app.config.update(
     SECRET_KEY=os.environ.get('SECRET_KEY', secrets.token_hex(32)),
     SQLALCHEMY_DATABASE_URI=os.environ.get('DATABASE_URL', 'sqlite:///app.db'),
@@ -236,7 +236,7 @@ db = SQLAlchemy(app)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    # ✅ ذخیره هش رمز عبور با Werkzeug (pbkdf2)
+    # Store password hash using PBKDF2
     password_hash = db.Column(db.String(256), nullable=False)
 
     def set_password(self, password: str):
@@ -248,14 +248,14 @@ class User(db.Model):
 def require_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        # ... بررسی احراز هویت
+        # Authenticate user credentials
         return f(*args, **kwargs)
     return decorated
 
 @app.route('/api/users/<int:user_id>', methods=['GET'])
 @require_auth
 def get_user(user_id: int):
-    # ✅ SQLAlchemy به صورت خودکار از SQL Injection جلوگیری می‌کند
+    # SQLAlchemy ORM uses parameterized queries to prevent SQL injection
     user = db.session.get(User, user_id)
     if not user:
         abort(404, description="کاربر یافت نشد")
@@ -264,7 +264,7 @@ def get_user(user_id: int):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    # ✅ debug=False در production
+    # Ensure debug mode is disabled in production
     app.run(debug=False)""",
         "explanation": """### ✅ این کد کاملاً امن است!
 
@@ -278,35 +278,35 @@ if __name__ == '__main__':
 6. **کوکی‌های امن:** `HttpOnly`, `Secure`, و `SameSite=Lax` فعال هستند.""",
     },
     "python_logic_perf_fixed": {
-        "code": """# ✅ کد بهینه‌سازی شده از نظر منطقی، مدیریت منابع و پرفورمنس (امتیاز ۱۰۰)
+        "code": """# Optimized implementation for logic, resource safety, and performance
 import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ✅ ۱. رفع باگ آرگومان پیش‌فرض تغییرپذیر با استفاده از None
+# 1. Use None as default parameter to avoid mutable state sharing
 def add_audit_log(event: str | None, logs: list | None = None) -> list:
     if logs is None:
         logs = []
     
-    # ✅ ۲. مقایسه استاندارد با is None و حذف کد مرده (Unreachable Code)
+    # 2. Identity check using 'is None'
     if event is None:
         return logs
 
     logs.append(event)
     
-    # ✅ ۳. مدیریت امن منابع فایل با Context Manager (with) برای جلوگیری از نشت حافظه
+    # 3. Deterministic resource cleanup using context manager
     with open("audit.log", "a", encoding="utf-8") as f:
         f.write(f"{event}\\n")
         
     return logs
 
-# ✅ ۴. حذف حلقه تودرتوی O(n³)، حذف time.sleep و اجرای کوئری دسته‌ای (رفع مشکل N+1)
+# 4. Batch query execution avoiding N+1 and nested loop overhead
 def sync_users_report(users: list, db_cursor) -> list:
     if not users:
         return []
     try:
-        # استفاده از مجموعه (Set) با پیچیدگی زمانی O(1) به جای حلقه‌های تودرتو
+        # Use set for O(1) deduplication
         unique_users = list(set(users))
         placeholders = ",".join(["?"] * len(unique_users))
         query = f"SELECT uid, score FROM stats WHERE uid IN ({placeholders})"
@@ -314,7 +314,7 @@ def sync_users_report(users: list, db_cursor) -> list:
         db_cursor.execute(query, tuple(unique_users))
         return db_cursor.fetchmany(size=100)
     except Exception as exc:
-        # ✅ ۵. ثبت دقیق خطا در لاگ به جای بلعیدن خاموش خطا (except: pass)
+        # 5. Log exception details rather than swallowing errors silently
         logger.error("Database sync failed: %s", exc)
         raise
 """,
