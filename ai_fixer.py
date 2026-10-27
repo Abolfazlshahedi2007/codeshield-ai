@@ -277,6 +277,61 @@ if __name__ == '__main__':
 5. **Debug Mode خاموش:** `debug=False` در Production تنظیم شده.
 6. **کوکی‌های امن:** `HttpOnly`, `Secure`, و `SameSite=Lax` فعال هستند.""",
     },
+    "python_logic_perf_fixed": {
+        "code": """# ✅ کد بهینه‌سازی شده از نظر منطقی، مدیریت منابع و پرفورمنس (امتیاز ۱۰۰)
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# ✅ ۱. رفع باگ آرگومان پیش‌فرض تغییرپذیر با استفاده از None
+def add_audit_log(event: str | None, logs: list | None = None) -> list:
+    if logs is None:
+        logs = []
+    
+    # ✅ ۲. مقایسه استاندارد با is None و حذف کد مرده (Unreachable Code)
+    if event is None:
+        return logs
+
+    logs.append(event)
+    
+    # ✅ ۳. مدیریت امن منابع فایل با Context Manager (with) برای جلوگیری از نشت حافظه
+    with open("audit.log", "a", encoding="utf-8") as f:
+        f.write(f"{event}\\n")
+        
+    return logs
+
+# ✅ ۴. حذف حلقه تودرتوی O(n³)، حذف time.sleep و اجرای کوئری دسته‌ای (رفع مشکل N+1)
+def sync_users_report(users: list, db_cursor) -> list:
+    if not users:
+        return []
+    try:
+        # استفاده از مجموعه (Set) با پیچیدگی زمانی O(1) به جای حلقه‌های تودرتو
+        unique_users = list(set(users))
+        placeholders = ",".join(["?"] * len(unique_users))
+        query = f"SELECT uid, score FROM stats WHERE uid IN ({placeholders})"
+        
+        db_cursor.execute(query, tuple(unique_users))
+        return db_cursor.fetchmany(size=100)
+    except Exception as exc:
+        # ✅ ۵. ثبت دقیق خطا در لاگ به جای بلعیدن خاموش خطا (except: pass)
+        logger.error("Database sync failed: %s", exc)
+        raise
+""",
+        "explanation": """### 🧠 توضیح اصلاحات منطقی و بهینه‌سازی پرفورمنس
+
+**۱. رفع باگ آرگومان پیش‌فرض تغییرپذیر (Mutable Default Argument):**
+- مقدار پیش‌فرض `logs=[]` به `logs=None` تغییر یافت و در ابتدای تابع مقداردهی شد تا حافظه بین فراخوانی‌های مختلف مشترک نماند.
+
+**۲. رفع نشت منابع (Resource Leak):**
+- فایل با دستور `with open(...) as f:` باز شد تا حتی در صورت بروز استثنا، فایل به صورت خودکار در سیستم‌عامل بسته شود.
+
+**۳. رفع مشکل N+1 Query و پیچیدگی $O(n^3)$:**
+- حلقه‌های تودرتوی اضافی و `time.sleep(1)` حذف شدند و به جای اجرای کوئری در هر دور حلقه، از کوئری یکپارچه و ساختار داده `set` با پیچیدگی $O(1)$ استفاده شد.
+
+**۴. مدیریت اصولی خطاها و حذف کد مرده:**
+- مقایسه `== None` به `is None` اصلاح شد، کدهای غیرقابل دسترس بعد از `return` پاکسازی شدند و بلوک خاموش `except: pass` با ثبت لاگ استاندارد (`logger.error`) جایگزین گردید.""",
+    },
 }
 
 
@@ -286,12 +341,22 @@ def get_offline_fix(code: str, language: str, issues: list) -> dict:
     Guarantees matching the requested language.
     """
     issue_ids = set()
+    categories = set()
     if isinstance(issues, list):
         for i in issues:
-            if isinstance(i, dict) and "id" in i:
-                issue_ids.add(i["id"])
+            if isinstance(i, dict):
+                if "id" in i:
+                    issue_ids.add(i["id"])
+                if "category" in i:
+                    categories.add(i["category"])
 
     norm_lang = language.lower() if isinstance(language, str) else "python"
+
+    logic_perf_ids = {
+        "mutable_default_arg", "unreachable_code", "silent_error_swallowing",
+        "io_in_loop_bottleneck", "deep_nested_loops", "resource_leak_open",
+        "unbounded_query_or_memory", "blocking_sleep_or_sync", "loose_equality_bug"
+    }
 
     if norm_lang == "php":
         sample = OFFLINE_FIXES["php_sqli_xss"]
@@ -300,6 +365,8 @@ def get_offline_fix(code: str, language: str, issues: list) -> dict:
     elif norm_lang == "python":
         if "dangerous_functions" in issue_ids or "hardcoded_secrets" in issue_ids or "sql_injection" in issue_ids:
             sample = OFFLINE_FIXES["python_secrets_eval"]
+        elif (issue_ids & logic_perf_ids) or ("logic" in categories or "performance" in categories):
+            sample = OFFLINE_FIXES["python_logic_perf_fixed"]
         else:
             sample = OFFLINE_FIXES["python_secure"]
     else:

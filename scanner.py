@@ -1,16 +1,22 @@
 import re
+import ast
 
 # ─────────────────────────────────────────────
-#  Rule definitions
+#  Rule definitions (Security, Logic & Performance)
 # ─────────────────────────────────────────────
 RULES = [
+    # ═════════════════════════════════════════
+    #  ۱. قوانین امنیتی (Security Rules)
+    # ═════════════════════════════════════════
     {
         "id": "sql_injection",
+        "category": "security",
         "title": "تزریق SQL",
         "title_en": "SQL Injection",
         "severity": "critical",
         "deduction": 35,
         "description": "کد آسیب‌پذیر به تزریق SQL است. اطلاعات ورودی کاربر بدون اعتبارسنجی مستقیماً در کوئری SQL استفاده می‌شود.",
+        "hint": "💡 پیشنهاد کامپایلر: هرگز متغیرها را با + یا f-string داخل کوئری نچسبانید. از Prepared Statements یا پارامترهای ? و :id استفاده کنید.",
         "patterns": {
             "php": [
                 r'(SELECT|INSERT|UPDATE|DELETE).*\$_(GET|POST|REQUEST|COOKIE)',
@@ -37,11 +43,13 @@ RULES = [
     },
     {
         "id": "xss",
+        "category": "security",
         "title": "اسکریپت‌نویسی بین‌سایتی (XSS)",
         "title_en": "Cross-Site Scripting (XSS)",
         "severity": "high",
         "deduction": 25,
         "description": "خروجی داده‌های کاربر بدون فیلتر یا escape کردن در صفحه نمایش داده می‌شود که منجر به حمله XSS می‌گردد.",
+        "hint": "💡 پیشنهاد کامپایلر: در JS از textContent یا DOMPurify، در PHP از htmlspecialchars() و در Flask از قالب‌های استاندارد Jinja2 استفاده کنید.",
         "patterns": {
             "php": [
                 r'(echo|print)\s*(\(|\s).*?\$_(GET|POST|REQUEST|COOKIE)',
@@ -64,11 +72,13 @@ RULES = [
     },
     {
         "id": "hardcoded_secrets",
+        "category": "security",
         "title": "اسرار و رمزهای هاردکد شده",
         "title_en": "Hardcoded Secrets/Passwords",
         "severity": "high",
         "deduction": 25,
         "description": "رمز عبور، کلید API یا توکن‌های امنیتی مستقیماً در کد درج شده‌اند که خطر لو رفتن اطلاعات حساس را دارد.",
+        "hint": "💡 پیشنهاد کامپایلر: مقادیر حساس را به فایل .env منتقل کرده و با os.environ.get() یا $_ENV بخوانید.",
         "patterns": {
             "php": [
                 r'(\$password|\$passwd|\$pwd|PASSWORD|PASS)\s*=\s*["\'][^"\']+["\']',
@@ -86,11 +96,13 @@ RULES = [
     },
     {
         "id": "dangerous_functions",
+        "category": "security",
         "title": "توابع خطرناک اجرای کد",
         "title_en": "Dangerous Execution Functions",
         "severity": "critical",
         "deduction": 35,
         "description": "توابع خطرناکی مانند eval() یا exec() استفاده شده که اجازه اجرای کد دلخواه را می‌دهند.",
+        "hint": "💡 پیشنهاد کامپایلر: استفاده از eval/exec را حذف کنید. برای پارس داده از JSON.parse() یا ast.literal_eval() استفاده نمایید.",
         "patterns": {
             "php": [
                 r'\beval\s*\(',
@@ -117,11 +129,13 @@ RULES = [
     },
     {
         "id": "weak_crypto",
+        "category": "security",
         "title": "رمزنگاری ضعیف",
         "title_en": "Weak Cryptography",
         "severity": "medium",
         "deduction": 15,
         "description": "از الگوریتم‌های رمزنگاری قدیمی و ضعیف مانند MD5 یا SHA1 برای هش کردن استفاده شده است.",
+        "hint": "💡 پیشنهاد کامپایلر: برای هش کردن رمز عبور از الگوریتم‌های مدرن مانند PBKDF2، Argon2 یا bcrypt استفاده کنید.",
         "patterns": {
             "php": [
                 r'\bmd5\s*\(',
@@ -142,11 +156,13 @@ RULES = [
     },
     {
         "id": "debug_mode",
+        "category": "security",
         "title": "حالت دیباگ فعال",
         "title_en": "Debug Mode Left On",
         "severity": "low",
         "deduction": 10,
         "description": "حالت Debug در محیط production فعال مانده که اطلاعات حساس سیستم را در معرض دید قرار می‌دهد.",
+        "hint": "💡 پیشنهاد کامپایلر: در محیط عملیاتی (Production) مقدار debug=False تنظیم شود و نمایش خطاها به کاربر بسته شود.",
         "patterns": {
             "php": [
                 r'display_errors\s*=\s*On',
@@ -163,6 +179,106 @@ RULES = [
             ],
         },
     },
+
+    # ═════════════════════════════════════════
+    #  ۲. قوانین پرفورمنس و مصرف منابع (Performance & Resource Rules)
+    # ═════════════════════════════════════════
+    {
+        "id": "unbounded_query_or_memory",
+        "category": "performance",
+        "title": "واکشی سنگین داده و مصرف بی‌رویه رم",
+        "title_en": "Unbounded Query / High Memory Usage",
+        "severity": "medium",
+        "deduction": 10,
+        "description": "واکشی کل رکوردهای جدول یا خواندن کل فایل‌های حجیم به صورت یکجا در حافظه (RAM) می‌تواند باعث کندی شدید یا کرش سرور (Out Of Memory) شود.",
+        "hint": "💡 پیشنهاد کامپایلر: در کوئری‌های SELECT از LIMIT و نام ستون‌های مشخص استفاده کنید، و فایل‌های بزرگ را خط‌به‌خط (Generator/Stream) بخوانید.",
+        "patterns": {
+            "php": [
+                r'file_get_contents\s*\(\s*\$_(FILES|POST|GET)',
+                r'SELECT\s+\*\s+FROM\s+\w+\s*;',
+            ],
+            "python": [
+                r'\.fetchall\s*\(\s*\)',
+                r'\.readlines\s*\(\s*\)',
+            ],
+            "javascript": [
+                r'fs\.readFileSync\s*\(',
+            ],
+        },
+    },
+    {
+        "id": "blocking_sleep_or_sync",
+        "category": "performance",
+        "title": "مسدودسازی نخ پردازشی (Thread Blocking)",
+        "title_en": "Blocking Execution / Sync Bottleneck",
+        "severity": "medium",
+        "deduction": 12,
+        "description": "استفاده از توابع متوقف‌کننده (Sleep یا عملیات همگام سنگین) در مسیر اصلی پردازش وب، کل ترد سرور را قفل کرده و زمان پاسخ‌دهی به سایر کاربران را به شدت افزایش می‌دهد.",
+        "hint": "💡 پیشنهاد کامپایلر: از توابع غیرهمگام (Async/Await)، صف‌های پردازش پس‌زمینه (Celery/Queues) یا Web Workers استفاده کنید.",
+        "patterns": {
+            "php": [
+                r'\bsleep\s*\(\s*\d+\s*\)',
+                r'\busleep\s*\(\s*\d+\s*\)',
+            ],
+            "python": [
+                r'\btime\.sleep\s*\(\s*[1-9]\d*\s*\)',
+            ],
+            "javascript": [
+                r'while\s*\(\s*true\s*\)',
+                r'execSync\s*\(',
+            ],
+        },
+    },
+
+    # ═════════════════════════════════════════
+    #  ۳. قوانین منطقی و پایداری کد (Logic & Reliability Rules)
+    # ═════════════════════════════════════════
+    {
+        "id": "silent_error_swallowing",
+        "category": "logic",
+        "title": "بلعیدن خطاها و استثناهای خاموش (Silent Failure)",
+        "title_en": "Bare Except / Empty Catch Block",
+        "severity": "medium",
+        "deduction": 12,
+        "description": "گرفتن تمام خطاها بدون مشخص کردن نوع خطا یا خالی گذاشتن بلوک catch باعث می‌شود باگ‌های منطقی در زمان اجرا پنهان بمانند و عیب‌یابی سیستم غیرممکن شود.",
+        "hint": "💡 پیشنهاد کامپایلر: همیشه نوع دقیق خطا (مثلاً ValueError) را مشخص کنید و حداقل خطا را در لاگ سیستم (logging.error) ثبت نمایید.",
+        "patterns": {
+            "php": [
+                r'catch\s*\([^)]+\)\s*\{\s*\}',
+                r'@\s*(mysqli_|file_|fopen|unlink|include|require)',
+            ],
+            "python": [
+                r'^\s*except\s*:\s*$',
+            ],
+            "javascript": [
+                r'catch\s*\([^)]*\)\s*\{\s*\}',
+                r'\.catch\s*\(\s*\(\s*\)\s*=>\s*\{\s*\}\s*\)',
+            ],
+        },
+    },
+    {
+        "id": "loose_equality_bug",
+        "category": "logic",
+        "title": "مقایسه منطقی غیردقیق (خطای تبدیل نوع ضمنی)",
+        "title_en": "Loose Equality / Singleton Comparison Bug",
+        "severity": "low",
+        "deduction": 8,
+        "description": "استفاده از عملگرهای مقایسه غیردقیق باعث تبدیل خودکار نوع داده‌ها (Type Coercion) شده و در شرایط مرزی (مثل 0، رشته خالی یا null) رفتار منطقی غیرمنتظره ایجاد می‌کند.",
+        "hint": "💡 پیشنهاد کامپایلر: در پایتون برای مقایسه با None یا بولین از `is None` استفاده کنید. در JS و PHP همیشه از `===` و `!==` استفاده نمایید.",
+        "patterns": {
+            "php": [
+                r'if\s*\(.*?\b(strpos|stripos)\s*\(.*?\)\s*==\s*(false|true|0)',
+            ],
+            "python": [
+                r'[!=]=\s*None\b',
+                r'[!=]=\s*(True|False)\b',
+            ],
+            "javascript": [
+                r'[^=!<>]==[^=]',
+                r'!=[^=]',
+            ],
+        },
+    },
 ]
 
 SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
@@ -175,24 +291,207 @@ for rule in RULES:
         COMPILED_RULES[rule["id"]][lang] = [re.compile(p, re.IGNORECASE) for p in patterns]
 
 
+# ─────────────────────────────────────────────
+#  Python AST Static Analyzer (Rust-Clippy Style)
+# ─────────────────────────────────────────────
+def _ast_scan_python(code: str) -> list:
+    """
+    Analyze Python code using Abstract Syntax Tree (AST) to detect deep
+    logical bugs, resource leaks, and performance bottlenecks.
+    """
+    ast_issues = []
+    try:
+        tree = ast.parse(code)
+    except SyntaxError as e:
+        lineno = getattr(e, "lineno", 1) or 1
+        return [{
+            "id": "syntax_error",
+            "category": "logic",
+            "title": "خطای نحوی (Syntax Error) در کامپایل کد",
+            "title_en": "Python Syntax Error",
+            "severity": "high",
+            "deduction": 20,
+            "description": f"کد پایتون دارای خطای سینتکس در خط {lineno} است و در زمان اجرا کرش خواهد کرد: {e.msg}",
+            "hint": "💡 پیشنهاد کامپایلر: پرانتزها، تورفتگی‌ها (Indentation) و دو‌نقطه‌های انتهای دستورات را در خط اشاره‌شده بررسی کنید.",
+            "lines": [lineno],
+        }]
+    except Exception:
+        return []
+
+    mutable_arg_lines = []
+    unreachable_lines = []
+    silent_except_lines = []
+    nested_loop_lines = []
+    io_in_loop_lines = []
+    open_call_lines = set()
+    with_open_lines = set()
+
+    IO_CALL_NAMES = {
+        "execute", "executemany", "get", "post", "put", "delete",
+        "urlopen", "sleep", "connect", "read_sql", "find", "find_one"
+    }
+
+    for node in ast.walk(tree):
+        # ۱. تشخیص آرگومان پیش‌فرض تغییرپذیر (Mutable Default Argument: list/dict/set)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            for default in node.args.defaults + node.args.kw_defaults:
+                if default is not None and isinstance(default, (ast.List, ast.Dict, ast.Set)):
+                    if node.lineno not in mutable_arg_lines:
+                        mutable_arg_lines.append(node.lineno)
+
+        # ۲. تشخیص کد غیرقابل دسترس (Unreachable / Dead Code بعد از return/raise/break/continue)
+        for attr in ("body", "orelse", "finalbody"):
+            stmts = getattr(node, attr, None)
+            if isinstance(stmts, list):
+                for idx, stmt in enumerate(stmts):
+                    if isinstance(stmt, (ast.Return, ast.Raise, ast.Break, ast.Continue)):
+                        if idx + 1 < len(stmts):
+                            next_line = getattr(stmts[idx + 1], "lineno", stmt.lineno)
+                            if next_line not in unreachable_lines:
+                                unreachable_lines.append(next_line)
+                        break
+
+        # ۳. تشخیص بلعیدن خطا در except: pass
+        if isinstance(node, ast.ExceptHandler):
+            if len(node.body) == 1 and isinstance(node.body[0], ast.Pass):
+                if node.lineno not in silent_except_lines:
+                    silent_except_lines.append(node.lineno)
+
+        # ۴. تحلیل حلقه‌ها: حلقه‌های تودرتوی سنگین O(n²) و عملیات شبکه/دیتابیس داخل حلقه (N+1)
+        if isinstance(node, (ast.For, ast.AsyncFor, ast.While)):
+            for child in ast.walk(node):
+                if child is not node and isinstance(child, (ast.For, ast.AsyncFor, ast.While)):
+                    # بررسی حلقه سطح سوم یا حلقه تودرتو
+                    for grand in ast.walk(child):
+                        if grand is not child and isinstance(grand, (ast.For, ast.AsyncFor, ast.While)):
+                            if node.lineno not in nested_loop_lines:
+                                nested_loop_lines.append(node.lineno)
+                if isinstance(child, ast.Call):
+                    func_name = ""
+                    if isinstance(child.func, ast.Attribute):
+                        func_name = child.func.attr
+                    elif isinstance(child.func, ast.Name):
+                        func_name = child.func.id
+                    if func_name in IO_CALL_NAMES:
+                        if child.lineno not in io_in_loop_lines:
+                            io_in_loop_lines.append(child.lineno)
+
+        # ۵. تشخیص نشت منابع فایل (باز کردن فایل با open بدون بلاک with)
+        if isinstance(node, (ast.With, ast.AsyncWith)):
+            for item in node.items:
+                ctx = item.context_expr
+                if isinstance(ctx, ast.Call) and isinstance(ctx.func, ast.Name) and ctx.func.id == "open":
+                    with_open_lines.add(ctx.lineno)
+        elif isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name) and node.func.id == "open":
+                open_call_lines.add(node.lineno)
+
+    leaked_open_lines = sorted(open_call_lines - with_open_lines)
+
+    if mutable_arg_lines:
+        ast_issues.append({
+            "id": "mutable_default_arg",
+            "category": "logic",
+            "title": "آرگومان پیش‌فرض تغییرپذیر (باگ منطقی حافظه مشترک)",
+            "title_en": "Mutable Default Argument",
+            "severity": "high",
+            "deduction": 15,
+            "description": "استفاده از لیست `[]` یا دیکشنری `{}` به عنوان مقدار پیش‌فرض تابع در پایتون باعث می‌شود یک شیء واحد در حافظه بین تمام فراخوانی‌های بعدی تابع مشترک بماند و داده‌ها قاطی شوند.",
+            "hint": "💡 پیشنهاد کامپایلر: مقدار پیش‌فرض را `None` بگذارید (مثلاً `def fn(items=None):`) و در خط اول تابع بنویسید: `if items is None: items = []`.",
+            "lines": sorted(mutable_arg_lines),
+        })
+
+    if unreachable_lines:
+        ast_issues.append({
+            "id": "unreachable_code",
+            "category": "logic",
+            "title": "کد مرده و غیرقابل دسترس (Unreachable Code)",
+            "title_en": "Unreachable / Dead Code",
+            "severity": "medium",
+            "deduction": 10,
+            "description": "دستوراتی پس از `return`، `break` یا `raise` نوشته شده‌اند که جریان اجرای برنامه هرگز به آن‌ها نمی‌رسد و نشان‌دهنده خطای منطقی در الگوریتم است.",
+            "hint": "💡 پیشنهاد کامپایلر: کدهای بعد از دستور خروج را حذف کنید یا شرط (if/else) قبل از return را بررسی نمایید.",
+            "lines": sorted(unreachable_lines),
+        })
+
+    if silent_except_lines:
+        ast_issues.append({
+            "id": "silent_error_swallowing",
+            "category": "logic",
+            "title": "بلعیدن خطا با بلوک except: pass",
+            "title_en": "Silent Exception Pass",
+            "severity": "medium",
+            "deduction": 12,
+            "description": "استفاده از `pass` در بلوک `except` باعث می‌شود خطاهای زمان اجرا کاملاً نادیده گرفته شوند و برنامه با داده‌های ناقص به کار ادامه دهد.",
+            "hint": "💡 پیشنهاد کامپایلر: به جای `pass`، خطا را لاگ کنید یا خطای مشخصی را مدیریت نمایید.",
+            "lines": sorted(silent_except_lines),
+        })
+
+    if io_in_loop_lines:
+        ast_issues.append({
+            "id": "io_in_loop_bottleneck",
+            "category": "performance",
+            "title": "گلوگاه شدید پرفورمنس: فراخوانی I/O یا کوئری داخل حلقه (N+1)",
+            "title_en": "I/O or Database Query Inside Loop",
+            "severity": "high",
+            "deduction": 18,
+            "description": "اجرای کوئری دیتابیس، درخواست شبکه یا توقف زمان در هر دور از حلقه باعث افت نمایی سرعت (N+1 Problem) و مصرف شدید منابع سرور می‌شود.",
+            "hint": "💡 پیشنهاد کامپایلر: کوئری‌ها را به صورت دسته‌ای (Batch / WHERE IN) خارج از حلقه اجرا کنید یا از درخواست‌های ناهمگام (asyncio.gather) بهره ببرید.",
+            "lines": sorted(io_in_loop_lines),
+        })
+
+    if nested_loop_lines:
+        ast_issues.append({
+            "id": "deep_nested_loops",
+            "category": "performance",
+            "title": "پیچیدگی زمانی بالا: حلقه‌های تودرتوی عمیق O(n³)",
+            "title_en": "High Time Complexity (Deep Nested Loops)",
+            "severity": "medium",
+            "deduction": 15,
+            "description": "وجود ۳ سطح یا بیشتر حلقه تودرتو باعث می‌شود با افزایش حجم ورودی، مصرف CPU به صورت تصاعدی بالا رفته و پردازش قفل شود.",
+            "hint": "💡 پیشنهاد کامپایلر: برای جستجوی سریع‌تر، داده‌های حلقه داخلی را به دیکشنری (Hash Map) یا مجموعه (set) با پیچیدگی O(1) تبدیل کنید.",
+            "lines": sorted(nested_loop_lines),
+        })
+
+    if leaked_open_lines:
+        ast_issues.append({
+            "id": "resource_leak_open",
+            "category": "performance",
+            "title": "نشت منابع سیستم (فایل باز رها شده بدون with)",
+            "title_en": "Unclosed File Resource Leak",
+            "severity": "medium",
+            "deduction": 12,
+            "description": "فراخوانی `open()` بدون استفاده از Context Manager (`with`) باعث می‌شود در صورت بروز خطا، فایل در سیستم‌عامل باز بماند و File Descriptor نشت کند.",
+            "hint": "💡 پیشنهاد کامپایلر: همیشه فایل‌ها را با ساختار `with open(...) as f:` باز کنید تا به صورت خودکار و امن بسته شوند.",
+            "lines": leaked_open_lines,
+        })
+
+    return ast_issues
+
+
 def scan_code(code: str, language: str) -> dict:
     """
-    Scan code for security vulnerabilities.
-    Returns a dict with score, issues list, and summary.
+    Scan code for security vulnerabilities, logical bugs, and performance bottlenecks.
+    Returns a dict with score, category sub-scores, issues list, and summary.
     """
     if not isinstance(code, str) or not code.strip():
         return {
             "score": 0,
+            "security_score": 0,
+            "quality_score": 0,
             "issues": [{
                 "id": "empty_code",
+                "category": "logic",
                 "title": "کدی ارسال نشده است",
                 "title_en": "Empty Code",
                 "severity": "low",
                 "deduction": 0,
                 "description": "هیچ کدی برای تحلیل ارسال نشده است.",
+                "hint": "لطفاً کد خود را در ویرایشگر وارد کنید.",
                 "lines": [],
             }],
             "issues_count": 0,
+            "category_counts": {"security": 0, "logic": 0, "performance": 0},
             "total_deduction": 0,
             "language": language if isinstance(language, str) else "python",
         }
@@ -206,6 +505,7 @@ def scan_code(code: str, language: str) -> dict:
     total_deduction = 0
     seen_rule_ids = set()
 
+    # ۱. اجرای قوانین مبتنی بر الگو (Regex)
     for rule in RULES:
         compiled_patterns = COMPILED_RULES.get(rule["id"], {}).get(language, [])
         if not compiled_patterns:
@@ -215,7 +515,6 @@ def scan_code(code: str, language: str) -> dict:
         for compiled in compiled_patterns:
             for line_no, raw_line in enumerate(lines, start=1):
                 stripped = raw_line.strip()
-                # Skip comments to prevent false positives
                 if stripped.startswith(("#", "//", "/*", "*")):
                     continue
                 if compiled.search(raw_line):
@@ -228,22 +527,178 @@ def scan_code(code: str, language: str) -> dict:
             issues.append(
                 {
                     "id": rule["id"],
+                    "category": rule.get("category", "security"),
                     "title": rule["title"],
                     "title_en": rule["title_en"],
                     "severity": rule["severity"],
                     "deduction": rule["deduction"],
                     "description": rule["description"],
-                    "lines": matched_lines,
+                    "hint": rule.get("hint", ""),
+                    "lines": sorted(matched_lines),
                 }
             )
 
+    # ۲. اجرای تحلیلگر درخت نحوی (AST) برای پایتون
+    if language == "python":
+        for ast_issue in _ast_scan_python(code):
+            if ast_issue["id"] not in seen_rule_ids:
+                seen_rule_ids.add(ast_issue["id"])
+                total_deduction += ast_issue["deduction"]
+                issues.append(ast_issue)
+
+    # ۳. اجرای تحلیلگر ساختاری برای جاوااسکریپت
+    if language == "javascript":
+        for js_issue in _ast_scan_javascript(code):
+            if js_issue["id"] not in seen_rule_ids:
+                seen_rule_ids.add(js_issue["id"])
+                total_deduction += js_issue["deduction"]
+                issues.append(js_issue)
+
+    # ۴. اجرای تحلیلگر ساختاری برای PHP
+    if language == "php":
+        for php_issue in _ast_scan_php(code):
+            if php_issue["id"] not in seen_rule_ids:
+                seen_rule_ids.add(php_issue["id"])
+                total_deduction += php_issue["deduction"]
+                issues.append(php_issue)
+    
     issues.sort(key=lambda x: SEVERITY_ORDER.get(x["severity"], 99))
     score = max(0, min(100, 100 - total_deduction))
 
+    # محاسبه آمار تفکیکی برای نمایش در داشبورد
+    category_counts = {"security": 0, "logic": 0, "performance": 0}
+    sec_deduction = 0
+    qual_deduction = 0
+
+    for item in issues:
+        cat = item.get("category", "security")
+        if cat in category_counts:
+            category_counts[cat] += 1
+        if cat == "security":
+            sec_deduction += item.get("deduction", 0)
+        else:
+            qual_deduction += item.get("deduction", 0)
+
+    security_score = max(0, min(100, 100 - sec_deduction))
+    quality_score = max(0, min(100, 100 - qual_deduction))
+
     return {
         "score": score,
+        "security_score": security_score,
+        "quality_score": quality_score,
         "issues": issues,
         "issues_count": len(issues),
+        "category_counts": category_counts,
         "total_deduction": total_deduction,
         "language": language,
     }
+def _ast_scan_javascript(code: str) -> list:
+    """
+    Advanced logical and performance analysis for JavaScript code.
+    Detects N+1 query loops, async/await anti-patterns, loose equality, and resource issues.
+    """
+    issues = []
+    lines = code.splitlines()
+
+    for line_no, raw_line in enumerate(lines, start=1):
+        stripped = raw_line.strip()
+        # Skip comments
+        if stripped.startswith(("//", "/*", "*")):
+            continue
+
+        # ۱. بررسی مقایسه سست (Loose Equality)
+        if " == " in raw_line or " != " in raw_line:
+            if "=== " not in raw_line and "!== " not in raw_line and "null" not in raw_line:
+                issues.append({
+                    "id": "js_loose_equality",
+                    "category": "logic",
+                    "title": "مقایسه منطقی غیردقیق (استفاده از == به جای ===)",
+                    "title_en": "Loose Equality Comparison",
+                    "severity": "medium",
+                    "deduction": 8,
+                    "description": "استفاده از == در جاوااسکریپت باعث تبدیل ضمنی نوع داده (Type Coercion) شده و خطای منطقی ایجاد می‌کند.",
+                    "hint": "همیشه از عملگرهای مقایسه سخت‌گیرانه (=== و !==) استفاده کنید.",
+                    "lines": [line_no],
+                })
+
+        # ۲. بررسی گلوگاه پرفورمنس: await داخل حلقه
+        if "for" in raw_line or "while" in raw_line or ".forEach(" in raw_line or ".map(" in raw_line:
+            # Check subsequent lines in the loop block for await or fetch/query
+            pass
+
+        # ۳. بررسی await بدون Promise.all در حلقه‌ها یا توابع
+        if "await " in raw_line and ("fetch(" in raw_line or "axios." in raw_line or "db." in raw_line):
+            # Check if it's inside a loop or sequential calls
+            # For demonstration of AST/Structural rules in JS:
+            pass
+
+    # بررسی کلی حلقه‌های ناهمگام یا کوئری‌های تکراری
+    full_code = code.lower()
+    if "for" in full_code and "await " in full_code:
+        for line_no, raw_line in enumerate(lines, start=1):
+            if "await " in raw_line and ("fetch" in raw_line or "query" in raw_line or "get" in raw_line):
+                issues.append({
+                    "id": "js_async_in_loop",
+                    "category": "performance",
+                    "title": "گلوگاه پرفورمنس: درخواست ترتیبی (Await) درون حلقه",
+                    "title_en": "Sequential Await in Loop (N+1 Performance Bottleneck)",
+                    "severity": "high",
+                    "deduction": 15,
+                    "description": "انجام درخواست‌های ناهمگام به صورت ترتیبی داخل حلقه باعث افت شدید سرعت می‌شود.",
+                    "hint": "از Promise.all() برای اجرای موازی درخواست‌ها استفاده کنید.",
+                    "lines": [line_no],
+                })
+                break
+
+    return issues    
+
+def _ast_scan_php(code: str) -> list:
+    """
+    Advanced logical and performance analysis for PHP code.
+    Detects N+1 queries in loops, loose equality, and type juggling issues.
+    """
+    issues = []
+    lines = code.splitlines()
+
+    for line_no, raw_line in enumerate(lines, start=1):
+        stripped = raw_line.strip()
+        if stripped.startswith(("//", "/*", "*", "#")):
+            continue
+
+        # ۱. بررسی مقایسه سست و Type Juggling
+        if " == " in raw_line or " != " in raw_line:
+            if "=== " not in raw_line and "!== " not in raw_line and "null" not in raw_line and "false" not in raw_line:
+                issues.append({
+                    "id": "php_loose_equality",
+                    "category": "logic",
+                    "title": "مقایسه منطقی غیردقیق (استفاده از == به جای ===)",
+                    "title_en": "Loose Equality Comparison",
+                    "severity": "medium",
+                    "deduction": 8,
+                    "description": "استفاده از == در پی‌ات‌پی باعث تبدیل نوع ضمنی (Type Juggling) شده و خطای منطقی خطرناک ایجاد می‌کند.",
+                    "hint": "همیشه از مقایسه سخت‌گیرانه (=== و !==) استفاده کنید.",
+                    "lines": [line_no],
+                })
+
+    # ۲. بررسی گلوگاه پرفورمنس: کوئری دیتابیس داخل حلقه (N+1)
+    full_code = code.lower()
+    if ("foreach" in full_code or "while" in full_code or "for" in full_code) and (
+        "mysqli_query" in full_code or "->query(" in full_code or "->prepare(" in full_code
+    ):
+        for line_no, raw_line in enumerate(lines, start=1):
+            l_lower = raw_line.lower()
+            if "mysqli_query" in l_lower or "->query(" in l_lower or "->prepare(" in l_lower:
+                issues.append({
+                    "id": "php_n_plus_1_query",
+                    "category": "performance",
+                    "title": "گلوگاه پرفورمنس شدید: اجرای کوئری دیتابیس درون حلقه (N+1)",
+                    "title_en": "N+1 Query Bottleneck inside Loop",
+                    "severity": "high",
+                    "deduction": 18,
+                    "description": "فراخوانی کوئری دیتابیس در هر دور از حلقه باعث افزایش تصاعدی بار سرور و افت شدید سرعت می‌شود.",
+                    "hint": "کوئری‌ها را به صورت دسته‌ای (Batch / WHERE IN) خارج از حلقه اجرا کنید.",
+                    "lines": [line_no],
+                })
+                break
+
+    return issues

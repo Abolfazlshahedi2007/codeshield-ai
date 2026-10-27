@@ -143,13 +143,37 @@
         </div>
         <div class="score-meta">
           <div id="scoreBadge" class="score-badge">—</div>
-          <div id="issuesCount" class="issues-count">۰ آسیب‌پذیری</div>
+          <div id="issuesCount" class="issues-count">۰ مورد شناسایی شد</div>
+          <div class="sub-scores-grid">
+            <div class="sub-score-pill">
+              <span>🛡️ امنیت:</span>
+              <strong id="securitySubScore">100</strong>
+            </div>
+            <div class="sub-score-pill">
+              <span>🧠 منطق و پرفورمنس:</span>
+              <strong id="qualitySubScore">100</strong>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Issues list -->
       <div class="issues-section">
-        <h3 class="section-title">⚠️ آسیب‌پذیری‌های شناسایی شده</h3>
+        <h3 class="section-title">⚠️ نتایج تحلیل امنیت، منطق و پرفورمنس</h3>
+        <div class="category-filter-tabs" id="categoryFilterTabs">
+          <button type="button" class="filter-tab-btn active" onclick="filterIssues('all', this)">
+            🔍 همه (<span id="countAll">0</span>)
+          </button>
+          <button type="button" class="filter-tab-btn" onclick="filterIssues('security', this)">
+            🛡️ امنیت (<span id="countSecurity">0</span>)
+          </button>
+          <button type="button" class="filter-tab-btn" onclick="filterIssues('logic', this)">
+            🧠 منطق کد (<span id="countLogic">0</span>)
+          </button>
+          <button type="button" class="filter-tab-btn" onclick="filterIssues('performance', this)">
+            ⚡ پرفورمنس و منابع (<span id="countPerformance">0</span>)
+          </button>
+        </div>
         <div id="issuesList" class="issues-list"></div>
       </div>
 
@@ -510,9 +534,8 @@ async function runScan() {
   }
 }
 
-// ──────────────────────────────────────────────
-// Display results
-// ──────────────────────────────────────────────
+let activeCategoryFilter = 'all';
+
 function displayResults(data) {
   document.getElementById('emptyState').classList.add('hidden');
   document.getElementById('resultsArea').classList.remove('hidden');
@@ -522,43 +545,46 @@ function displayResults(data) {
   document.getElementById('scoreValue').textContent = score;
   drawGauge(score);
 
+  // Sub-scores (Security vs Logic/Performance)
+  const secScore = typeof data.security_score === 'number' ? data.security_score : score;
+  const qualScore = typeof data.quality_score === 'number' ? data.quality_score : 100;
+  const secEl = document.getElementById('securitySubScore');
+  const qualEl = document.getElementById('qualitySubScore');
+  if (secEl) secEl.textContent = `${secScore}/100`;
+  if (qualEl) qualEl.textContent = `${qualScore}/100`;
+
+  // Category counts for filter tabs
+  const counts = data.category_counts || { security: 0, logic: 0, performance: 0 };
+  document.getElementById('countAll').textContent = data.issues_count || 0;
+  document.getElementById('countSecurity').textContent = counts.security || 0;
+  document.getElementById('countLogic').textContent = counts.logic || 0;
+  document.getElementById('countPerformance').textContent = counts.performance || 0;
+
   // Score badge
   const badge = document.getElementById('scoreBadge');
   if (score >= 80) {
-    badge.textContent = '✅ امن';
+    badge.textContent = '✅ امن و بهینه';
     badge.className = 'score-badge badge-green';
   } else if (score >= 50) {
-    badge.textContent = '⚠️ متوسط';
+    badge.textContent = '⚠️ نیازمند بازبینی';
     badge.className = 'score-badge badge-yellow';
   } else {
-    badge.textContent = '🚨 خطرناک';
+    badge.textContent = '🚨 بحرانی / پرخطا';
     badge.className = 'score-badge badge-red';
   }
 
   // Issues count
   const cnt = data.issues_count;
   document.getElementById('issuesCount').textContent =
-    cnt === 0 ? 'هیچ آسیب‌پذیری‌ای یافت نشد 🎉' : `${cnt} آسیب‌پذیری شناسایی شد`;
+    cnt === 0 ? 'هیچ خطا یا گلوگاهی یافت نشد 🎉' : `${cnt} مورد (امنیتی / منطقی / پرفورمنس)`;
 
-  // Issues list
-  const list = document.getElementById('issuesList');
-  if (data.issues.length === 0) {
-    list.innerHTML = '<div class="no-issues">✅ کد شما از نظر قوانین محلی امن است!</div>';
-  } else {
-    list.innerHTML = data.issues.map(issue => `
-      <div class="issue-card severity-${escapeHtml(issue.severity)}">
-        <div class="issue-header">
-          <span class="severity-badge severity-badge-${escapeHtml(issue.severity)}">${severityLabel(issue.severity)}</span>
-          <span class="issue-title">${escapeHtml(issue.title)}</span>
-          <span class="issue-deduction">-${escapeHtml(String(issue.deduction))} امتیاز</span>
-        </div>
-        <p class="issue-desc">${escapeHtml(issue.description)}</p>
-        <div class="issue-lines">
-          📍 خطوط: ${issue.lines.map(l => `<span class="line-badge">${escapeHtml(String(l))}</span>`).join(' ')}
-        </div>
-      </div>
-    `).join('');
-  }
+  // Reset filter tab to 'all' on new scan
+  activeCategoryFilter = 'all';
+  document.querySelectorAll('#categoryFilterTabs .filter-tab-btn').forEach((btn, idx) => {
+    btn.classList.toggle('active', idx === 0);
+  });
+
+  renderIssuesList(data.issues || []);
 
   // Show fix action buttons only if there are issues
   const fixActions = document.getElementById('fixActionsContainer');
@@ -567,12 +593,71 @@ function displayResults(data) {
   }
 }
 
+function filterIssues(category, btnEl) {
+  activeCategoryFilter = category;
+  document.querySelectorAll('#categoryFilterTabs .filter-tab-btn').forEach(b => b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  if (currentScanResult && currentScanResult.issues) {
+    renderIssuesList(currentScanResult.issues);
+  }
+}
+
+function renderIssuesList(issues) {
+  const list = document.getElementById('issuesList');
+  const filtered = activeCategoryFilter === 'all'
+    ? issues
+    : issues.filter(i => (i.category || 'security') === activeCategoryFilter);
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="no-issues">✅ هیچ موردی در این دسته‌بندی یافت نشد!</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(issue => {
+    const cat = issue.category || 'security';
+    const hintHtml = issue.hint
+      ? `<div class="compiler-hint-box">${escapeHtml(issue.hint)}</div>`
+      : '';
+    return `
+      <div class="issue-card severity-${escapeHtml(issue.severity)}">
+        <div class="issue-header">
+          <span class="severity-badge severity-badge-${escapeHtml(issue.severity)}">${severityLabel(issue.severity)}</span>
+          <span class="category-tag category-tag-${escapeHtml(cat)}">${categoryLabel(cat)}</span>
+          <span class="issue-title">${escapeHtml(issue.title)}</span>
+          <span class="issue-deduction">-${escapeHtml(String(issue.deduction))} امتیاز</span>
+        </div>
+        <p class="issue-desc">${escapeHtml(issue.description)}</p>
+        ${hintHtml}
+        <div class="issue-lines">
+          📍 خطوط (کلیک برای پرش به خط): ${issue.lines.map(l => `<span class="line-badge" style="cursor:pointer;" onclick="jumpToEditorLine(${Number(l)})">${escapeHtml(String(l))}</span>`).join(' ')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function jumpToEditorLine(lineNo) {
+  if (!editor || !lineNo) return;
+  const targetLine = Math.max(0, lineNo - 1);
+  editor.scrollIntoView({ line: targetLine, ch: 0 }, 100);
+  editor.setCursor({ line: targetLine, ch: 0 });
+  editor.focus();
+}
+
 function severityLabel(s) {
   return {critical:'🔴 بحرانی', high:'🟠 بالا', medium:'🟡 متوسط', low:'🔵 پایین'}[s] || s;
 }
 
+function categoryLabel(c) {
+  return {
+    security: '🛡️ امنیتی',
+    logic: '🧠 خطای منطقی',
+    performance: '⚡ پرفورمنس و منابع'
+  }[c] || '🛡️ امنیتی';
+}
+
 // ──────────────────────────────────────────────
-// Gauge chart
+// Gauge chart (نمودار دایره‌ای امتیاز)
 // ──────────────────────────────────────────────
 let gaugeChart = null;
 function drawGauge(score) {
@@ -830,7 +915,10 @@ function resetResults() {
     const existing = Chart.getChart(canvas);
     if (existing) existing.destroy();
   }
-  if (gaugeChart) { gaugeChart.destroy(); gaugeChart = null; }
+  if (typeof gaugeChart !== 'undefined' && gaugeChart) { 
+    gaugeChart.destroy(); 
+    gaugeChart = null; 
+  }
 }
 
 function showToast(message, type = 'info') {

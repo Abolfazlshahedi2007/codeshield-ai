@@ -1229,3 +1229,117 @@ body.light-mode .code-snippet-preview {
   .shield-icon { font-size: 3rem; }
   .auth-title { font-size: 1.55rem; }
 }
+/* ══════════════════════════════════════════════════════════
+   استایل‌های بخش تحلیل منطقی، پرفورمنس و پیشنهاد کامپایلر
+   ══════════════════════════════════════════════════════════ */
+.sub-scores-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+.sub-score-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+body.light-mode .sub-score-pill {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+.sub-score-pill strong {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--neon-cyan);
+}
+
+/* تب‌های فیلتر دسته‌بندی خطاها */
+.category-filter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.85rem;
+}
+.filter-tab-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.35rem 0.85rem;
+  transition: all var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+body.light-mode .filter-tab-btn {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+.filter-tab-btn:hover {
+  border-color: var(--neon-cyan);
+  color: var(--text-primary);
+}
+.filter-tab-btn.active {
+  background: linear-gradient(135deg, rgba(0, 245, 255, 0.22), rgba(168, 85, 247, 0.22));
+  border-color: var(--neon-cyan);
+  color: #ffffff;
+  box-shadow: 0 0 15px rgba(0, 245, 255, 0.25);
+}
+body.light-mode .filter-tab-btn.active {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+/* بج دسته‌بندی روی هر کارت خطا */
+.category-tag {
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.18rem 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.category-tag-security {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+.category-tag-logic {
+  background: rgba(168, 85, 247, 0.2);
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.45);
+}
+.category-tag-performance {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fde047;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+}
+body.light-mode .category-tag-security { color: #b91c1c; }
+body.light-mode .category-tag-logic { color: #6b21a8; }
+body.light-mode .category-tag-performance { color: #b45309; }
+
+/* باکس پیشنهاد کامپایلر (Rust Compiler Hint) */
+.compiler-hint-box {
+  background: rgba(0, 245, 255, 0.06);
+  border-right: 3px solid var(--neon-cyan);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  line-height: 1.65;
+  margin: 0.55rem 0;
+  padding: 0.5rem 0.75rem;
+}
+body.light-mode .compiler-hint-box {
+  background: rgba(2, 132, 199, 0.08);
+}
