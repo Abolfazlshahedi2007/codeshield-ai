@@ -1,7 +1,7 @@
 /* ─────────────────────────────────────────────────────────────
-   سپر کد — CodeShield AI
-   کنسول شیشه‌ای سه‌بعدی کریستالی (Ultra Frosted Crystal Glassmorphism)
-   دارای استانداردهای WCAG 2.1 AA و W3C HTML5
+   CodeShield AI — Primary Stylesheet
+   Ultra Frosted Crystal Glassmorphism Design System
+   WCAG 2.1 AA and W3C Compliant
    ───────────────────────────────────────────────────────────── */
 
 :root {
@@ -83,7 +83,7 @@ body.light-mode, html.light-mode body {
   --shadow-glow: 0 0 20px rgba(2, 132, 199, 0.12);
 }
 
-/* ── Reset پایه ── */
+/* ── Base Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body {
@@ -101,7 +101,7 @@ a { color: var(--neon-cyan); text-decoration: none; transition: all var(--transi
 a:hover { text-decoration: underline; }
 
 /* ══════════════════════════════════════════════════════════
-   استاندارد WCAG 2.1 AA: فوکوس با کنتراست بالا و ناوبری کیبورد
+   WCAG 2.1 AA Accessibility: High-Contrast Focus & Keyboard Navigation
    ══════════════════════════════════════════════════════════ */
 button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible {
   outline: 2px solid var(--neon-cyan) !important;
@@ -119,7 +119,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
 }
 
 /* ══════════════════════════════════════════════════════════
-   کهکشان نوری پس‌زمینه و شبکه فضایی سه‌بعدی
+   Cosmic Starfield Backdrop and 3D Perspective Grid
    ══════════════════════════════════════════════════════════ */
 .cosmic-backdrop {
   position: fixed;
@@ -190,7 +190,7 @@ body.light-mode .cursor-ambient-light {
   100% { width: 300px; height: 300px; opacity: 0; border-width: 1px; }
 }
 
-/* ── بازتاب نوری کریستالی روی شیشه (Specular Glare) ── */
+/* ── Specular Surface Glare Reflections ── */
 .glass-glare-effect {
   position: absolute;
   inset: 0;
@@ -200,13 +200,13 @@ body.light-mode .cursor-ambient-light {
   z-index: 1;
 }
 
-/* ── نوار اسکرول سفارشی ── */
+/* ── Custom Scrollbars ── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: rgba(3, 7, 18, 0.6); }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--neon-cyan); }
 
-/* ── انیمیشن‌ها ── */
+/* ── Keyframe Animations ── */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes pulseGlow { 0%, 100% { transform: scale(1); filter: drop-shadow(0 0 12px var(--neon-cyan)); } 50% { transform: scale(1.08); filter: drop-shadow(0 0 25px var(--neon-magenta)); } }
@@ -214,7 +214,7 @@ body.light-mode .cursor-ambient-light {
 .fade-in { animation: fadeIn 0.5s ease forwards; }
 
 /* ══════════════════════════════════════════════════════════
-   هدر شیشه‌ای کریستالی کاملاً شفاف (Ultra Frosted Glass Navbar)
+   Ultra Frosted Glass Navigation Bar
    ══════════════════════════════════════════════════════════ */
 .navbar {
   position: sticky;
@@ -308,7 +308,7 @@ body.light-mode .glass-telemetry-chip {
 }
 
 /* ══════════════════════════════════════════════════════════
-   صفحات احراز هویت (ورود و ثبت‌نام با کارت شیشه‌ای سه‌بعدی)
+   Authentication Cards (Login & Registration 3D Panels)
    ══════════════════════════════════════════════════════════ */
 .auth-wrapper {
   min-height: 100vh;
@@ -371,7 +371,7 @@ body.light-mode .auth-title { color: #0f172a; }
 .auth-link { color: var(--neon-cyan); font-weight: 700; margin-right: 0.35rem; }
 .auth-link:hover { text-decoration: underline; color: #ffffff; }
 
-/* ── جداکننده فرم‌ها ── */
+/* ── Form Separator ── */
 .divider {
   display: flex; align-items: center; gap: 1rem;
   margin: 1.4rem 0; color: var(--text-muted); font-size: 0.85rem;
@@ -386,7 +386,7 @@ body.light-mode .divider::before, body.light-mode .divider::after {
 }
 
 /* ══════════════════════════════════════════════════════════
-   عناصر فرم و فیلدهای ورودی شیشه‌ای (Glass Inputs)
+   Glass Input Elements and Controls
    ══════════════════════════════════════════════════════════ */
 .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
 .form-label {
@@ -429,7 +429,7 @@ body.light-mode .form-input:focus {
 }
 
 /* ══════════════════════════════════════════════════════════
-   دکمه‌های اقدام با نور نئونی و گرادیان‌های کریستالی
+   Interactive Buttons and Glowing Accents
    ══════════════════════════════════════════════════════════ */
 .btn {
   align-items: center; border: none; border-radius: var(--radius-sm);
@@ -585,7 +585,7 @@ body.light-mode .btn-icon {
 
 .w-full { width: 100%; }
 
-/* ── اعلان‌ها و پیام‌های فلش ── */
+/* ── Flash Notification Banners ── */
 .alert {
   border-radius: var(--radius-sm);
   font-size: 0.92rem;
@@ -603,7 +603,7 @@ body.light-mode .btn-icon {
 .flash-container { padding: 1rem 2rem 0; }
 
 /* ══════════════════════════════════════════════════════════
-   میز کار اصلی (کنسول سه‌بعدی دو پنله)
+   Main Dual-Panel Workspace
    ══════════════════════════════════════════════════════════ */
 .workspace {
   display: grid;
@@ -706,7 +706,7 @@ body.light-mode .select-control {
 }
 .select-control:focus { outline: none; border-color: var(--neon-cyan); box-shadow: 0 0 15px var(--neon-cyan-glow); }
 
-/* ── ویرایشگر کد و اشعه لیزر اسکن ── */
+/* ── Code Editor Container and Scanning Laser Ray ── */
 .editor-wrapper { flex: 1; overflow: hidden; position: relative; }
 .editor-wrapper .CodeMirror {
   direction: ltr !important;
@@ -745,7 +745,7 @@ body.light-mode .editor-wrapper .CodeMirror {
 
 .scan-info { color: var(--text-muted); font-size: 0.82rem; text-align: center; }
 
-/* ── منوی آبشاری نمونه‌ها ── */
+/* ── Demo Sample Dropdown Menu ── */
 .dropdown { position: relative; }
 .dropdown-menu {
   background: rgba(15, 23, 42, 0.92);
@@ -777,7 +777,7 @@ body.light-mode .dropdown-item { color: #0f172a; }
 .dropdown-item:hover { background: rgba(0, 245, 255, 0.15); color: var(--neon-cyan); }
 
 /* ══════════════════════════════════════════════════════════
-   پنل نتایج اسکن (Left Panel) و رآکتور کوانتومی سه‌بعدی
+   Analysis Results (Left Panel) and Quantum Arc Reactor
    ══════════════════════════════════════════════════════════ */
 .panel-left { overflow-y: auto; }
 
@@ -799,7 +799,7 @@ body.light-mode .empty-state h3 { color: #0f172a; }
 
 .results-area { display: flex; flex-direction: column; gap: 1.25rem; padding: 1.25rem; animation: fadeIn 0.4s ease; }
 
-/* ── رآکتور آرک کوانتومی سه‌بعدی و نمایشگر امتیاز ── */
+/* ── 3D Quantum Arc Reactor and Score Telemetry ── */
 .score-section {
   align-items: center;
   display: flex;
@@ -828,7 +828,7 @@ body.light-mode .score-section {
   height: 200px;
 }
 
-/* حلقه‌های ژیروسکوپی سه‌بعدی */
+/* 3D gyroscopic gimbal rings */
 .gyro-ring-alpha {
   position: absolute;
   width: 175px;
@@ -905,7 +905,7 @@ body.light-mode .score-number {
 .badge-red { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1.5px solid #ef4444; }
 .issues-count { color: var(--text-secondary); font-size: 0.9rem; font-weight: 600; text-align: center; }
 
-/* ── کارت‌های آسیب‌پذیری کشف‌شده (Threat Glass Cards) ── */
+/* ── Threat Glass Cards ── */
 .section-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 0.6rem; color: #ffffff; }
 body.light-mode .section-title { color: #0f172a; }
 .issues-list { display: flex; flex-direction: column; gap: 0.75rem; }
@@ -947,7 +947,7 @@ body.light-mode .issue-title { color: #0f172a; }
 }
 .no-issues { color: var(--accent-green); font-size: 0.95rem; font-weight: 700; padding: 1.5rem; text-align: center; }
 
-/* ── بخش اصلاح هوشمند و جعبه خروجی ── */
+/* ── Automated Remediation and Code Output ── */
 .ai-section { margin-top: 0.5rem; }
 .fix-actions-container {
   display: flex;
@@ -1012,7 +1012,7 @@ body.light-mode .explanation-content h3 { color: #0f172a; }
   padding: 0.15rem 0.45rem;
 }
 
-/* ── وضعیت لودینگ ── */
+/* ── Loading State Indicator ── */
 .loading-state {
   align-items: center; display: flex; flex-direction: column;
   gap: 1.2rem; height: 100%; justify-content: center; padding: 2.5rem;
@@ -1028,7 +1028,7 @@ body.light-mode .explanation-content h3 { color: #0f172a; }
 .hidden { display: none !important; }
 
 /* ══════════════════════════════════════════════════════════
-   پنجره‌های پاپ‌آپ شیشه‌ای (Glass Modals)
+   Glass Modals and Dialog Overlays
    ══════════════════════════════════════════════════════════ */
 .modal-overlay {
   align-items: center;
@@ -1078,7 +1078,7 @@ body.light-mode .modal-header h3 { color: #0f172a; }
 .modal-footer { display: flex; gap: 0.65rem; justify-content: flex-end; margin-top: 1.6rem; }
 
 /* ══════════════════════════════════════════════════════════
-   صفحه تاریخچه اسکن‌ها (History Page)
+   Scan History View
    ══════════════════════════════════════════════════════════ */
 .history-wrapper {
   max-width: 1180px;
@@ -1188,7 +1188,7 @@ body.light-mode .code-snippet-preview {
 .ltr-text { direction: ltr; text-align: left; }
 .timestamp { color: var(--text-muted); font-size: 0.82rem; white-space: nowrap; font-family: var(--font-mono); }
 
-/* ── توست‌ها و پیام‌های شناور ── */
+/* ── Toast Notifications ── */
 .toast {
   background: rgba(15, 23, 42, 0.9);
   backdrop-filter: blur(25px);
@@ -1215,7 +1215,7 @@ body.light-mode .code-snippet-preview {
 .toast-warning { border-color: #f59e0b; color: #fbbf24; box-shadow: 0 10px 30px rgba(245, 158, 11, 0.3); }
 .toast-info    { border-color: var(--neon-cyan); color: var(--neon-cyan); box-shadow: 0 10px 30px rgba(0, 245, 255, 0.3); }
 
-/* ── ریسپانسیو اختصاصی تبلت و موبایل ── */
+/* ── Responsive Viewport Adjustments (Tablet & Mobile) ── */
 @media (max-width: 768px) {
   .history-wrapper { padding: 0.75rem; }
   .history-table th, .history-table td { padding: 0.6rem 0.75rem; font-size: 0.78rem; }
@@ -1230,7 +1230,7 @@ body.light-mode .code-snippet-preview {
   .auth-title { font-size: 1.55rem; }
 }
 /* ══════════════════════════════════════════════════════════
-   استایل‌های بخش تحلیل منطقی، پرفورمنس و پیشنهاد کامپایلر
+   Logic, Performance Analysis & Compiler Hint Styles
    ══════════════════════════════════════════════════════════ */
 .sub-scores-grid {
   display: grid;
@@ -1259,7 +1259,7 @@ body.light-mode .sub-score-pill {
   color: var(--neon-cyan);
 }
 
-/* تب‌های فیلتر دسته‌بندی خطاها */
+/* ── Category Filter Tabs ── */
 .category-filter-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -1300,7 +1300,7 @@ body.light-mode .filter-tab-btn.active {
   color: #ffffff;
 }
 
-/* بج دسته‌بندی روی هر کارت خطا */
+/* ── Issue Category Badges ── */
 .category-tag {
   border-radius: 6px;
   font-size: 0.72rem;
@@ -1329,7 +1329,7 @@ body.light-mode .category-tag-security { color: #b91c1c; }
 body.light-mode .category-tag-logic { color: #6b21a8; }
 body.light-mode .category-tag-performance { color: #b45309; }
 
-/* باکس پیشنهاد کامپایلر (Rust Compiler Hint) */
+/* ── Compiler Diagnostic Hint Box ── */
 .compiler-hint-box {
   background: rgba(0, 245, 255, 0.06);
   border-right: 3px solid var(--neon-cyan);

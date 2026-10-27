@@ -2,16 +2,16 @@
 {% block title %}ثبت‌نام در کنسول — سپر کد{% endblock %}
 {% block body %}
 <div class="auth-wrapper">
-  <!-- کنترل تغییر تم در صفحه ثبت‌نام -->
+  <!-- Theme toggle controls -->
   <div style="position: absolute; top: 1.5rem; left: 1.5rem; z-index: 100;">
     <button class="btn-icon" onclick="toggleTheme()" title="تغییر تم (تیره / روشن)" aria-label="تغییر تم">🌙</button>
   </div>
 
   <div class="auth-card fade-in tilt-target">
-    <!-- بازتاب نوری کریستالی روی شیشه -->
+    <!-- Specular glare reflection -->
     <div class="glass-glare-effect" aria-hidden="true"></div>
 
-    <!-- نشان و عنوان سامانه -->
+    <!-- System badge and branding -->
     <div class="auth-logo">
       <div class="shield-icon brand-shield-orb" aria-hidden="true">🛡️</div>
       <h1 class="auth-title">ایجاد حساب کاربری</h1>
@@ -19,7 +19,7 @@
       <span class="auth-badge-crypto">CodeShield AI • ثبت دسترسی</span>
     </div>
 
-    <!-- پیام‌های سیستمی و خطاها -->
+    <!-- Flash and error messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
@@ -28,7 +28,7 @@
       {% endif %}
     {% endwith %}
 
-    <!-- فرم ثبت‌نام -->
+    <!-- Registration form -->
     <form method="POST" action="/register" class="auth-form">
       <div class="form-group">
         <label class="form-label" for="reg-username">

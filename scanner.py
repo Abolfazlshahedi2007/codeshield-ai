@@ -6,7 +6,7 @@ import ast
 # ─────────────────────────────────────────────
 RULES = [
     # ═════════════════════════════════════════
-    #  ۱. قوانین امنیتی (Security Rules)
+    #  1. Security Rules
     # ═════════════════════════════════════════
     {
         "id": "sql_injection",
@@ -181,7 +181,7 @@ RULES = [
     },
 
     # ═════════════════════════════════════════
-    #  ۲. قوانین پرفورمنس و مصرف منابع (Performance & Resource Rules)
+    #  2. Performance and Resource Rules
     # ═════════════════════════════════════════
     {
         "id": "unbounded_query_or_memory",
@@ -231,7 +231,7 @@ RULES = [
     },
 
     # ═════════════════════════════════════════
-    #  ۳. قوانین منطقی و پایداری کد (Logic & Reliability Rules)
+    #  3. Logic and Reliability Rules
     # ═════════════════════════════════════════
     {
         "id": "silent_error_swallowing",
@@ -332,14 +332,14 @@ def _ast_scan_python(code: str) -> list:
     }
 
     for node in ast.walk(tree):
-        # ۱. تشخیص آرگومان پیش‌فرض تغییرپذیر (Mutable Default Argument: list/dict/set)
+        # 1. Detect mutable default arguments (list, dict, set)
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             for default in node.args.defaults + node.args.kw_defaults:
                 if default is not None and isinstance(default, (ast.List, ast.Dict, ast.Set)):
                     if node.lineno not in mutable_arg_lines:
                         mutable_arg_lines.append(node.lineno)
 
-        # ۲. تشخیص کد غیرقابل دسترس (Unreachable / Dead Code بعد از return/raise/break/continue)
+        # 2. Detect unreachable/dead code after return, raise, break, or continue
         for attr in ("body", "orelse", "finalbody"):
             stmts = getattr(node, attr, None)
             if isinstance(stmts, list):
@@ -351,17 +351,17 @@ def _ast_scan_python(code: str) -> list:
                                 unreachable_lines.append(next_line)
                         break
 
-        # ۳. تشخیص بلعیدن خطا در except: pass
+        # 3. Detect silent exception suppression in except: pass
         if isinstance(node, ast.ExceptHandler):
             if len(node.body) == 1 and isinstance(node.body[0], ast.Pass):
                 if node.lineno not in silent_except_lines:
                     silent_except_lines.append(node.lineno)
 
-        # ۴. تحلیل حلقه‌ها: حلقه‌های تودرتوی سنگین O(n²) و عملیات شبکه/دیتابیس داخل حلقه (N+1)
+        # 4. Analyze loops: nested loops O(n^2)+ and network/database operations inside loops (N+1)
         if isinstance(node, (ast.For, ast.AsyncFor, ast.While)):
             for child in ast.walk(node):
                 if child is not node and isinstance(child, (ast.For, ast.AsyncFor, ast.While)):
-                    # بررسی حلقه سطح سوم یا حلقه تودرتو
+                    # Check for third-level or deeply nested loop
                     for grand in ast.walk(child):
                         if grand is not child and isinstance(grand, (ast.For, ast.AsyncFor, ast.While)):
                             if node.lineno not in nested_loop_lines:
@@ -376,7 +376,7 @@ def _ast_scan_python(code: str) -> list:
                         if child.lineno not in io_in_loop_lines:
                             io_in_loop_lines.append(child.lineno)
 
-        # ۵. تشخیص نشت منابع فایل (باز کردن فایل با open بدون بلاک with)
+        # 5. Detect file resource leaks (opening file with open without with block)
         if isinstance(node, (ast.With, ast.AsyncWith)):
             for item in node.items:
                 ctx = item.context_expr
@@ -505,7 +505,7 @@ def scan_code(code: str, language: str) -> dict:
     total_deduction = 0
     seen_rule_ids = set()
 
-    # ۱. اجرای قوانین مبتنی بر الگو (Regex)
+    # 1. Execute pattern-based rules (Regex)
     for rule in RULES:
         compiled_patterns = COMPILED_RULES.get(rule["id"], {}).get(language, [])
         if not compiled_patterns:
@@ -538,7 +538,7 @@ def scan_code(code: str, language: str) -> dict:
                 }
             )
 
-    # ۲. اجرای تحلیلگر درخت نحوی (AST) برای پایتون
+    # 2. Execute AST static analyzer for Python
     if language == "python":
         for ast_issue in _ast_scan_python(code):
             if ast_issue["id"] not in seen_rule_ids:
@@ -546,7 +546,7 @@ def scan_code(code: str, language: str) -> dict:
                 total_deduction += ast_issue["deduction"]
                 issues.append(ast_issue)
 
-    # ۳. اجرای تحلیلگر ساختاری برای جاوااسکریپت
+    # 3. Execute structural analyzer for JavaScript
     if language == "javascript":
         for js_issue in _ast_scan_javascript(code):
             if js_issue["id"] not in seen_rule_ids:
@@ -554,7 +554,7 @@ def scan_code(code: str, language: str) -> dict:
                 total_deduction += js_issue["deduction"]
                 issues.append(js_issue)
 
-    # ۴. اجرای تحلیلگر ساختاری برای PHP
+    # 4. Execute structural analyzer for PHP
     if language == "php":
         for php_issue in _ast_scan_php(code):
             if php_issue["id"] not in seen_rule_ids:
@@ -565,7 +565,7 @@ def scan_code(code: str, language: str) -> dict:
     issues.sort(key=lambda x: SEVERITY_ORDER.get(x["severity"], 99))
     score = max(0, min(100, 100 - total_deduction))
 
-    # محاسبه آمار تفکیکی برای نمایش در داشبورد
+    # Calculate category statistics for dashboard display
     category_counts = {"security": 0, "logic": 0, "performance": 0}
     sec_deduction = 0
     qual_deduction = 0
@@ -606,7 +606,7 @@ def _ast_scan_javascript(code: str) -> list:
         if stripped.startswith(("//", "/*", "*")):
             continue
 
-        # ۱. بررسی مقایسه سست (Loose Equality)
+        # 1. Check for loose equality
         if " == " in raw_line or " != " in raw_line:
             if "=== " not in raw_line and "!== " not in raw_line and "null" not in raw_line:
                 issues.append({
@@ -621,18 +621,18 @@ def _ast_scan_javascript(code: str) -> list:
                     "lines": [line_no],
                 })
 
-        # ۲. بررسی گلوگاه پرفورمنس: await داخل حلقه
+        # 2. Check performance bottleneck: await inside loop
         if "for" in raw_line or "while" in raw_line or ".forEach(" in raw_line or ".map(" in raw_line:
             # Check subsequent lines in the loop block for await or fetch/query
             pass
 
-        # ۳. بررسی await بدون Promise.all در حلقه‌ها یا توابع
+        # 3. Check await without Promise.all in loops or functions
         if "await " in raw_line and ("fetch(" in raw_line or "axios." in raw_line or "db." in raw_line):
             # Check if it's inside a loop or sequential calls
             # For demonstration of AST/Structural rules in JS:
             pass
 
-    # بررسی کلی حلقه‌های ناهمگام یا کوئری‌های تکراری
+    # General check for asynchronous loops or repeated queries
     full_code = code.lower()
     if "for" in full_code and "await " in full_code:
         for line_no, raw_line in enumerate(lines, start=1):
@@ -665,7 +665,7 @@ def _ast_scan_php(code: str) -> list:
         if stripped.startswith(("//", "/*", "*", "#")):
             continue
 
-        # ۱. بررسی مقایسه سست و Type Juggling
+        # 1. Check for loose equality and type juggling
         if " == " in raw_line or " != " in raw_line:
             if "=== " not in raw_line and "!== " not in raw_line and "null" not in raw_line and "false" not in raw_line:
                 issues.append({
@@ -680,7 +680,7 @@ def _ast_scan_php(code: str) -> list:
                     "lines": [line_no],
                 })
 
-    # ۲. بررسی گلوگاه پرفورمنس: کوئری دیتابیس داخل حلقه (N+1)
+    # 2. Check performance bottleneck: database query inside loop (N+1)
     full_code = code.lower()
     if ("foreach" in full_code or "while" in full_code or "for" in full_code) and (
         "mysqli_query" in full_code or "->query(" in full_code or "->prepare(" in full_code
