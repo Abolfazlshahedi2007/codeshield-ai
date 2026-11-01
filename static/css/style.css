@@ -666,7 +666,7 @@ body.light-mode .panel {
   justify-content: space-between;
   padding: 0.85rem 1.25rem;
   position: relative;
-  z-index: 2;
+  z-index: 30;
 }
 body.light-mode .panel-header {
   border-bottom: 1.5px solid rgba(0, 0, 0, 0.08);
@@ -688,37 +688,85 @@ body.light-mode .panel-title { color: #0f172a; }
 }
 
 .select-control {
-  background: rgba(15, 23, 42, 0.85);
-  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
   border-radius: var(--radius-sm);
-  color: #f8fafc;
+  color: #ffffff;
   font-family: var(--font);
-  font-size: 0.88rem;
-  padding: 0.45rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.45rem 0.9rem 0.45rem 1.8rem;
   cursor: pointer;
   direction: rtl;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  transition: all var(--transition);
+  outline: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 0.65rem center;
+}
+
+.select-control:hover {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 15px var(--neon-cyan-glow);
+  transform: translateY(-2px);
+}
+
+.select-control:focus {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 15px var(--neon-cyan-glow);
+  outline: none;
+}
+
+.select-control:active {
+  transform: translateY(0);
 }
 
 .select-control option,
 select option {
   background-color: #0f172a !important;
   color: #f8fafc !important;
-  padding: 0.5rem 0.75rem;
+  padding: 0.6rem 0.8rem;
+  font-weight: 600;
 }
 
 body.light-mode .select-control {
-  background: rgba(255, 255, 255, 0.95);
-  border: 1.5px solid rgba(0, 0, 0, 0.15);
+  background-color: rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
   color: #0f172a;
+  box-shadow: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%230f172a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 0.65rem center;
+}
+
+body.light-mode .select-control:hover,
+body.light-mode .select-control:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 15px rgba(2, 132, 199, 0.25);
+  transform: translateY(-2px);
+}
+
+body.light-mode .select-control:active {
+  transform: translateY(0);
 }
 
 body.light-mode .select-control option,
 body.light-mode select option {
   background-color: #ffffff !important;
   color: #0f172a !important;
+  padding: 0.6rem 0.8rem;
+  font-weight: 600;
 }
-
-.select-control:focus { outline: none; border-color: var(--neon-cyan); box-shadow: 0 0 15px var(--neon-cyan-glow); }
 
 /* ── Code Editor Container and Scanning Laser Ray ── */
 .editor-wrapper { flex: 1; overflow: hidden; position: relative; }
@@ -762,33 +810,87 @@ body.light-mode .editor-wrapper .CodeMirror {
 /* ── Demo Sample Dropdown Menu ── */
 .dropdown { position: relative; }
 .dropdown-menu {
-  background: rgba(15, 23, 42, 0.92);
+  background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
-  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
   border-radius: var(--radius-sm);
-  box-shadow: var(--shadow);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6), var(--shadow);
   display: none;
-  min-width: 250px;
+  min-width: 290px;
+  max-width: 360px;
+  max-height: 270px;
+  overflow-y: auto;
+  overflow-x: hidden;
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
-  z-index: 200;
-  overflow: hidden;
+  z-index: 1000;
+}
+.dropdown-menu::-webkit-scrollbar {
+  width: 5px;
+}
+.dropdown-menu::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
+.dropdown-menu::-webkit-scrollbar-thumb {
+  background: rgba(0, 245, 255, 0.4);
+  border-radius: 4px;
+}
+.dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-cyan);
 }
 body.light-mode .dropdown-menu {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.98);
   border: 1.5px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+}
+body.light-mode .dropdown-menu::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+}
+body.light-mode .dropdown-menu::-webkit-scrollbar-thumb {
+  background: rgba(2, 132, 199, 0.35);
+}
+body.light-mode .dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: #0284c7;
 }
 .dropdown-menu.show { display: block; animation: fadeIn 0.2s ease; }
 .dropdown-item {
-  background: none; border: none; color: #ffffff;
-  cursor: pointer; display: block; font-family: var(--font);
-  font-size: 0.875rem; padding: 0.7rem 1.1rem; text-align: right; width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  cursor: pointer;
+  display: block;
+  font-family: var(--font);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.7rem 1.1rem;
+  text-align: right;
+  width: 100%;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-body.light-mode .dropdown-item { color: #0f172a; }
-.dropdown-item:hover { background: rgba(0, 245, 255, 0.15); color: var(--neon-cyan); }
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+body.light-mode .dropdown-item {
+  color: #0f172a;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+.dropdown-item:hover {
+  background: rgba(0, 245, 255, 0.15);
+  color: var(--neon-cyan);
+  padding-right: 1.3rem;
+}
+body.light-mode .dropdown-item:hover {
+  background: rgba(2, 132, 199, 0.08);
+  color: #0284c7;
+  padding-right: 1.3rem;
+}
 
 /* ══════════════════════════════════════════════════════════
    Analysis Results (Left Panel) and Quantum Arc Reactor
