@@ -105,6 +105,40 @@ if __name__ == "__main__":
         for r_id, lang_dict in COMPILED_RULES.items():
             self.assertIn("python", lang_dict)
 
+    def test_php_logic_and_perf_rules(self):
+        code = """<?php
+if ($role == 'admin') {
+    echo "ورود";
+}
+foreach ($user_ids as $id) {
+    mysqli_query($conn, "SELECT * FROM users WHERE id = " . $id);
+    sleep(1);
+}
+try { doJob(); } catch (Exception $e) { }
+?>"""
+        result = scan_code(code, "php")
+        issue_ids = [i["id"] for i in result["issues"]]
+        self.assertIn("php_n_plus_1_query", issue_ids)
+        self.assertIn("blocking_sleep_or_sync", issue_ids)
+        self.assertIn("silent_error_swallowing", issue_ids)
+        self.assertIn("php_loose_equality", issue_ids)
+        self.assertLess(result["score"], 100)
+
+    def test_javascript_logic_and_perf_rules(self):
+        code = """if (status == 0) { console.log("start"); }
+async function load(ids) {
+    for (const id of ids) {
+        await fetch("/api/" + id);
+    }
+}
+try { run(); } catch (e) { }"""
+        result = scan_code(code, "javascript")
+        issue_ids = [i["id"] for i in result["issues"]]
+        self.assertIn("js_async_in_loop", issue_ids)
+        self.assertIn("silent_error_swallowing", issue_ids)
+        self.assertIn("js_loose_equality", issue_ids)
+        self.assertLess(result["score"], 100)
+
 
 if __name__ == "__main__":
     unittest.main()

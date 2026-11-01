@@ -632,11 +632,20 @@ def _ast_scan_javascript(code: str) -> list:
             # For demonstration of AST/Structural rules in JS:
             pass
 
-    # General check for asynchronous loops or repeated queries
-    full_code = code.lower()
-    if "for" in full_code and "await " in full_code:
-        for line_no, raw_line in enumerate(lines, start=1):
-            if "await " in raw_line and ("fetch" in raw_line or "query" in raw_line or "get" in raw_line):
+# General check for asynchronous loops or repeated queries
+    in_loop = False
+    loop_depth = 0
+    for line_no, raw_line in enumerate(lines, start=1):
+        stripped = raw_line.strip()
+        if stripped.startswith(("//", "/*", "*")):
+            continue
+        if re.search(r"\b(for\s*\(|while\s*\(|for\s+await)", raw_line):
+            in_loop = True
+            loop_depth += raw_line.count("{") - raw_line.count("}")
+            continue
+        if in_loop:
+            loop_depth += raw_line.count("{") - raw_line.count("}")
+            if "await " in raw_line and ("fetch" in raw_line or "query" in raw_line or "get" in raw_line or "axios" in raw_line):
                 issues.append({
                     "id": "js_async_in_loop",
                     "category": "performance",
@@ -649,8 +658,11 @@ def _ast_scan_javascript(code: str) -> list:
                     "lines": [line_no],
                 })
                 break
+            if loop_depth <= 0:
+                in_loop = False
 
     return issues    
+
 
 def _ast_scan_php(code: str) -> list:
     """
@@ -681,11 +693,18 @@ def _ast_scan_php(code: str) -> list:
                 })
 
     # 2. Check performance bottleneck: database query inside loop (N+1)
-    full_code = code.lower()
-    if ("foreach" in full_code or "while" in full_code or "for" in full_code) and (
-        "mysqli_query" in full_code or "->query(" in full_code or "->prepare(" in full_code
-    ):
-        for line_no, raw_line in enumerate(lines, start=1):
+    in_loop = False
+    loop_depth = 0
+    for line_no, raw_line in enumerate(lines, start=1):
+        stripped = raw_line.strip()
+        if stripped.startswith(("//", "/*", "*", "#")):
+            continue
+        if re.search(r"\b(foreach\s*\(|while\s*\(|for\s*\()", raw_line):
+            in_loop = True
+            loop_depth += raw_line.count("{") - raw_line.count("}")
+            continue
+        if in_loop:
+            loop_depth += raw_line.count("{") - raw_line.count("}")
             l_lower = raw_line.lower()
             if "mysqli_query" in l_lower or "->query(" in l_lower or "->prepare(" in l_lower:
                 issues.append({
@@ -700,5 +719,7 @@ def _ast_scan_php(code: str) -> list:
                     "lines": [line_no],
                 })
                 break
+            if loop_depth <= 0:
+                in_loop = False
 
     return issues

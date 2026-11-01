@@ -7,7 +7,10 @@ class TestAiFixerAndFallbacks(unittest.TestCase):
     """Unit tests for offline fallback templates and repairs."""
 
     def test_all_fallback_templates_exist(self):
-        expected_keys = ["php_sqli_xss", "python_secrets_eval", "javascript_xss_token", "python_secure"]
+        expected_keys = [
+            "php_sqli_xss", "python_secrets_eval", "javascript_xss_token", "python_secure",
+            "php_logic_perf_fixed", "javascript_logic_perf_fixed"
+        ]
         for key in expected_keys:
             self.assertIn(key, OFFLINE_FIXES)
             self.assertTrue(len(OFFLINE_FIXES[key]["code"]) > 50)
@@ -39,6 +42,16 @@ class TestAiFixerAndFallbacks(unittest.TestCase):
         self.assertEqual(res_js["score"], 100, f"JS template scored {res_js['score']}")
         self.assertEqual(res_js["issues_count"], 0)
 
+        # PHP logic & perf fixed
+        res_php_perf = scan_code(OFFLINE_FIXES["php_logic_perf_fixed"]["code"], "php")
+        self.assertEqual(res_php_perf["score"], 100, f"PHP logic/perf template scored {res_php_perf['score']}")
+        self.assertEqual(res_php_perf["issues_count"], 0)
+
+        # JS logic & perf fixed
+        res_js_perf = scan_code(OFFLINE_FIXES["javascript_logic_perf_fixed"]["code"], "javascript")
+        self.assertEqual(res_js_perf["score"], 100, f"JS logic/perf template scored {res_js_perf['score']}")
+        self.assertEqual(res_js_perf["issues_count"], 0)
+
     def test_get_offline_fix_dispatcher(self):
         # PHP dispatch
         res_php = get_offline_fix("some code", "php", [])
@@ -54,6 +67,16 @@ class TestAiFixerAndFallbacks(unittest.TestCase):
         res_py = get_offline_fix("some code", "python", [{"id": "dangerous_functions"}])
         self.assertEqual(res_py["source"], "offline")
         self.assertIn("safe_evaluate", res_py["fixed_code"])
+
+        # PHP with logic/performance issues
+        res_php_logic = get_offline_fix("some code", "php", [{"id": "php_n_plus_1_query", "category": "performance"}])
+        self.assertEqual(res_php_logic["source"], "offline")
+        self.assertIn("PDO", res_php_logic["fixed_code"])
+
+        # JS with logic/performance issues
+        res_js_logic = get_offline_fix("some code", "javascript", [{"id": "js_async_in_loop", "category": "performance"}])
+        self.assertEqual(res_js_logic["source"], "offline")
+        self.assertIn("Promise.all", res_js_logic["fixed_code"])
 
 
 if __name__ == "__main__":

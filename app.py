@@ -191,7 +191,7 @@ if __name__ == '__main__':
 """,
     },
     "python_logic_perf": {
-        "label": "کد دارای باگ منطقی و پرفورمنس (Python AST)",
+        "label": "کد باگ منطقی و پرفورمنس Python (آرگومان پیش‌فرض + N+1)",
         "language": "python",
         "code": """import time
 
@@ -222,6 +222,58 @@ def sync_users_report(users, db_cursor):
     except:
         # 6. Silent exception suppression
         pass
+""",
+    },
+    "php_logic_perf": {
+        "label": "کد باگ منطقی و پرفورمنس PHP (کوئری N+1 در حلقه + مقایسه سست)",
+        "language": "php",
+        "code": """<?php
+// 1. Loose equality and type juggling comparison
+if ($role == 'admin') {
+    echo "ورود مدیر";
+}
+
+// 2. Unbounded memory loading from input
+$payload = file_get_contents($_POST['doc']);
+
+// 3. Performance bottleneck: N+1 database query in loop
+foreach ($user_ids as $uid) {
+    $row = mysqli_query($conn, "SELECT * FROM users WHERE id = " . $uid);
+    sleep(1); // 4. Thread blocking execution bottleneck
+}
+
+// 5. Silent exception swallowing
+try {
+    processData();
+} catch (Exception $e) { }
+?>""",
+    },
+    "javascript_logic_perf": {
+        "label": "کد باگ منطقی و پرفورمنس JS (حلقه Await ناهمگام + مسدودسازی)",
+        "language": "javascript",
+        "code": """// 1. Loose equality comparison (Type Coercion bug)
+if (status == 0) {
+    console.log('وضعیت اولیه');
+}
+
+// 2. Unbounded memory & synchronous blocking bottleneck
+const buffer = fs.readFileSync('large_backup.tar');
+execSync('sleep 5');
+
+// 3. Performance bottleneck: Sequential await inside loop (N+1 bottleneck)
+async function syncUsers(userIds) {
+    const results = [];
+    for (const id of userIds) {
+        const res = await fetch('/api/profile/' + id);
+        results.push(res);
+    }
+    return results;
+}
+
+// 4. Silent error swallowing (Empty catch block)
+try {
+    doRiskyOperation();
+} catch (e) { }
 """,
     },
 }

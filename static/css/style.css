@@ -688,22 +688,36 @@ body.light-mode .panel-title { color: #0f172a; }
 }
 
 .select-control {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  background: rgba(15, 23, 42, 0.85);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
   border-radius: var(--radius-sm);
-  color: #ffffff;
+  color: #f8fafc;
   font-family: var(--font);
   font-size: 0.88rem;
   padding: 0.45rem 0.85rem;
   cursor: pointer;
   direction: rtl;
-  backdrop-filter: blur(10px);
 }
+
+.select-control option,
+select option {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  padding: 0.5rem 0.75rem;
+}
+
 body.light-mode .select-control {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   border: 1.5px solid rgba(0, 0, 0, 0.15);
   color: #0f172a;
 }
+
+body.light-mode .select-control option,
+body.light-mode select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
 .select-control:focus { outline: none; border-color: var(--neon-cyan); box-shadow: 0 0 15px var(--neon-cyan-glow); }
 
 /* ── Code Editor Container and Scanning Laser Ray ── */
