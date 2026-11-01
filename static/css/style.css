@@ -809,6 +809,10 @@ body.light-mode .editor-wrapper .CodeMirror {
 
 /* ── Demo Sample Dropdown Menu ── */
 .dropdown { position: relative; }
+.dropdown-menu-lang {
+  min-width: 170px !important;
+  max-width: 220px !important;
+}
 .dropdown-menu {
   background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(25px);

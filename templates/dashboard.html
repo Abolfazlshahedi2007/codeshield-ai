@@ -67,14 +67,31 @@
         <!-- Hidden file input for uploading from computer -->
         <input type="file" id="fileUploadInput" accept=".py,.php,.js,.txt,.html,.sql" style="display:none;" onchange="handleFileUpload(event)">
 
-        <!-- Language selector -->
-        <select id="languageSelect" class="select-control" onchange="changeLanguage(this.value)">
+        <!-- Language selector (hidden select for compatibility + custom glass dropdown) -->
+        <select id="languageSelect" style="display:none;" onchange="changeLanguage(this.value)">
           <option value="python">🐍 Python</option>
           <option value="php">🐘 PHP</option>
           <option value="javascript">⚡ JavaScript</option>
         </select>
+        <div class="dropdown" id="languageDropdownWrapper">
+          <button class="btn btn-sm btn-secondary dropdown-toggle" id="languageDropdownBtn" onclick="toggleLanguageDropdown()" type="button">
+            <span id="currentLanguageLabel">🐍 Python</span> ▾
+          </button>
+          <div class="dropdown-menu dropdown-menu-lang" id="languageDropdown">
+            <button class="dropdown-item" onclick="selectLanguage('python')" type="button">
+              🐍 Python
+            </button>
+            <button class="dropdown-item" onclick="selectLanguage('php')" type="button">
+              🐘 PHP
+            </button>
+            <button class="dropdown-item" onclick="selectLanguage('javascript')" type="button">
+              ⚡ JavaScript
+            </button>
+          </div>
+        </div>
+
         <!-- Demo samples dropdown -->
-        <div class="dropdown">
+        <div class="dropdown" id="samplesDropdownWrapper">
           <button class="btn btn-sm btn-secondary dropdown-toggle" onclick="toggleDropdown()" type="button">
             📂 نمونه‌های آماده ▾
           </button>
@@ -307,6 +324,34 @@ let geminiApiKey = localStorage.getItem('gemini_api_key') || '';
 function changeLanguage(lang) {
   const modeMap = { python: 'python', php: 'application/x-httpd-php', javascript: 'javascript' };
   editor.setOption('mode', modeMap[lang] || 'python');
+
+  const selectEl = document.getElementById('languageSelect');
+  if (selectEl && selectEl.value !== lang) {
+    selectEl.value = lang;
+  }
+
+  const labelMap = { python: '🐍 Python', php: '🐘 PHP', javascript: '⚡ JavaScript' };
+  const labelEl = document.getElementById('currentLanguageLabel');
+  if (labelEl && labelMap[lang]) {
+    labelEl.textContent = labelMap[lang];
+  }
+}
+
+function selectLanguage(lang) {
+  changeLanguage(lang);
+  closeLanguageDropdown();
+}
+
+function toggleLanguageDropdown() {
+  const dd = document.getElementById('languageDropdown');
+  const samplesDd = document.getElementById('samplesDropdown');
+  if (samplesDd) samplesDd.classList.remove('show');
+  if (dd) dd.classList.toggle('show');
+}
+
+function closeLanguageDropdown() {
+  const dd = document.getElementById('languageDropdown');
+  if (dd) dd.classList.remove('show');
 }
 
 // ──────────────────────────────────────────────
@@ -344,14 +389,17 @@ function loadSample(key) {
 
 function toggleDropdown() {
   const dd = document.getElementById('samplesDropdown');
-  dd.classList.toggle('show');
+  const langDd = document.getElementById('languageDropdown');
+  if (langDd) langDd.classList.remove('show');
+  if (dd) dd.classList.toggle('show');
 }
 function closeDropdown() {
   const dd = document.getElementById('samplesDropdown');
   if (dd) dd.classList.remove('show');
 }
 document.addEventListener('click', e => {
-  if (!e.target.closest('.dropdown')) closeDropdown();
+  if (!e.target.closest('#samplesDropdownWrapper')) closeDropdown();
+  if (!e.target.closest('#languageDropdownWrapper')) closeLanguageDropdown();
 });
 
 // ──────────────────────────────────────────────
